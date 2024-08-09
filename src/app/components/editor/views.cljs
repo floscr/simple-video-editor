@@ -15,7 +15,7 @@
    :align-items "center"
    :justify-content "center"
    :gap "10px"
-   :background "oklch(90% 0 0)"})
+   :background "oklch(10% 0.15 200)"})
 
 (css video-css []
   {:display "block"
