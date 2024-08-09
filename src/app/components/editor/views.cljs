@@ -166,15 +166,28 @@
                       :offset offset}))))
 
 (defui Editor []
-  (let [[video-url set-video-url!] (uix/use-state nil)
-        [crop set-crop!] (uix/use-state #js {:x 0 :y 0})
-        [zoom set-zoom!] (uix/use-state 1)
+  (let [[file-name set-file-name!] (uix/use-state nil)
+        [video-dimensions set-video-dimensions!] (uix/use-state nil)
+        [video-url set-video-url!] (uix/use-state nil)
         [offset set-offset!] (uix/use-state {:top 0
                                              :bottom 0
                                              :left 0
                                              :right 0})
-        resizer-ref (uix/use-ref)]
-    (js/console.log "offset" offset)
+        resizer-ref (uix/use-ref)
+        video-ref (uix/use-ref)]
+    (uix/use-effect
+     (fn [] ()
+       (when (and @video-ref video-url)
+
+         (let [f (fn [_e]
+                   (set-video-dimensions! {:width (.-videoWidth @video-ref)
+                                           :height (.-videoHeight @video-ref)
+                                           :element-width (.-clientWidth @video-ref)
+                                           :element-height (.-clientHeight @video-ref)}))]
+           (.addEventListener @video-ref "loadedmetadata" f)
+           #(.removeEventListener @video-ref "loadedmetadata" f))))
+     [video-url])
+    (js/console.log "video-dimensions" video-dimensions)
     ($ dnd/context
        {:on-drag-end (fn [opts]
                        (let [id (.. opts -active -id)
@@ -203,11 +216,14 @@
               :on-change (fn [e]
                            (let [file (-> e .-target .-files (aget 0))
                                  url (js/URL.createObjectURL file)]
+                             (set-file-name! (.-name file))
                              (set-video-url! url)))})
           (when video-url
-            ($ :div {:class (video-wrapper-css)}
-               ($ Cropper {:resizer-ref resizer-ref
-                           :offset offset})
-               ($ :video
-                  {:class [(video-css)]
-                   :src video-url})))))))
+            ($ :<>
+               ($ :div {:class (video-wrapper-css)}
+                  ($ Cropper {:resizer-ref resizer-ref
+                              :offset offset})
+                  ($ :video
+                     {:class [(video-css)]
+                      :ref video-ref
+                      :src video-url}))
