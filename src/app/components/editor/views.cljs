@@ -26,7 +26,8 @@
   {:position "relative"})
 
 (css cropper-css []
-  {:position "absolute"
+  {"--border-color" "oklch(0% 0 0 / 0.5)"
+   :position "absolute"
    :inset 0
    :border "1px solid oklch(100% 0 0)"
    :box-shadow "0 0 0 1px var(--border-color), inset 0 0 0 1px var(--border-color)"})
@@ -107,25 +108,7 @@
                                 :cursor "col-resize"
                                 :transform (when isDragging (translate-x dnd-opts pos?))
                                 :z-index 1})
-                :on-pointer-down (get-in bar-dnd [:listeners :onPointerDown])}
-          ($ :div {:class (cropper-bar-border-css)
-                   :style (case direction
-                            :top {:top "50%"
-                                  :left 0
-                                  :right 0
-                                  :height "2px"}
-                            :left {:top 0
-                                   :left "50%"
-                                   :bottom 0
-                                   :width "2px"}
-                            :right {:top 0
-                                    :right "-50%"
-                                    :bottom 0
-                                    :width "2px"}
-                            :bottom {:bottom "-50%"
-                                     :left 0
-                                     :right 0
-                                     :height "2px"})}))
+                :on-pointer-down (get-in bar-dnd [:listeners :onPointerDown])})
        ($ :div
           {:ref (:setNodeRef circle-dnd)
            :style (case direction
@@ -149,15 +132,13 @@
            :on-pointer-down (get-in circle-dnd [:listeners :onPointerDown])}))))
 
 
-(defui CropRect []
-  (let [{:keys [] :as dnd-opts} (dnd/use-draggable :crop-rect)]
-    (js/console.log dnd-opts)
-    ($ :div {:class (cropper-css)
-             :style {:top (str (get-in dnd-opts [:transform :y]) "px")}})))
+(defui CropRect [{:keys [ref]}]
+  ($ :div {:ref ref
+           :class (cropper-css)}))
 
-(defn Cropper []
+(defui Cropper [{:keys [resizer-ref]}]
   ($ :div {:class (cropper-wrapper-css)}
-     ;; ($ CropRect)
+     ($ CropRect {:ref resizer-ref})
      (for [direction [:top :right :bottom :left]]
        ($ CropCircle {:key direction
                       :direction direction}))))
@@ -165,9 +146,22 @@
 (defui Editor []
   (let [[video-url set-video-url!] (uix/use-state nil)
         [crop set-crop!] (uix/use-state #js {:x 0 :y 0})
-        [zoom set-zoom!] (uix/use-state 1)]
+        [zoom set-zoom!] (uix/use-state 1)
+        resizer-ref (uix/use-ref)]
     ($ dnd/context
-       {:on-drag-end js/console.log}
+       {:on-drag-end (fn [_]
+                       (set! (.. @resizer-ref -style -left) nil)
+                       (set! (.. @resizer-ref -style -top) nil)
+                       (set! (.. @resizer-ref -style -right) nil)
+                       (set! (.. @resizer-ref -style -bottom) nil))
+        :on-drag-move (fn [opts]
+                        (let [id (.. opts -active -id)]
+                          (case id
+                            :top (set! (.. @resizer-ref -style -top) (str (.. opts -delta -y) "px"))
+                            :bottom (set! (.. @resizer-ref -style -bottom) (str (- (.. opts -delta -y)) "px"))
+                            :left (set! (.. @resizer-ref -style -left) (str (.. opts -delta -x) "px"))
+                            :right (set! (.. @resizer-ref -style -right) (str (- (.. opts -delta -x)) "px"))
+                            nil)))}
        ($ :div {:class (wrapper-css)}
           ($ :input
              {:type "file"
@@ -178,7 +172,7 @@
                              (set-video-url! url)))})
           (when video-url
             ($ :div {:class (video-wrapper-css)}
-               ($ Cropper)
+               ($ Cropper {:resizer-ref resizer-ref})
                ($ :video
                   {:class [(video-css)]
                    :src video-url})))))))
