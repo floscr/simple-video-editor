@@ -56,6 +56,12 @@
   {:position "absolute"
    :background "white"})
 
+(css ffmpeg-command-css []
+  {:background "white"
+   :padding "10px"
+   :font-family "monospace"
+   :border-radius "5px"})
+
 ;; Component -------------------------------------------------------------------
 
 (defn px [v]
@@ -231,6 +237,10 @@
                      {:class [(video-css)]
                       :ref video-ref
                       :src video-url}))
-               ($ :input {:read-only true
-                          :value (ffmpeg-command {:offset offset
-                                                  :file-name file-name})})))))))
+               (let [command (ffmpeg-command {:offset offset
+                                              :file-name file-name})]
+                 ($ :input {:class (ffmpeg-command-css)
+                            :read-only true
+                            :style {:width (str (count command) "ch")}
+                            :value command
+                            :on-click #(.select (.-target %))}))))))))
