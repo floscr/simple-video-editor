@@ -4,9 +4,6 @@
    [uix.core :as uix :refer [$ defui]]
    [app.components.editor.views :refer [Editor]]))
 
-(defui main [_]
-  ($ Editor))
-
 (defui provider []
   ($ state.context/provider {:middleware state.context/middleware}
-     ($ main)))
+     ($ Editor)))
