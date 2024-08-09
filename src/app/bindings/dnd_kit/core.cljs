@@ -1,20 +1,33 @@
 (ns app.bindings.dnd-kit.core
   (:require ["@dnd-kit/core" :as dnd-kit :refer [defaultDropAnimationSideEffects]]
             ["@dnd-kit/modifiers" :refer [snapCenterToCursor]]
+            [goog.string :as gstring]
             [applied-science.js-interop :as j]
             [uix.core :refer [defui $]]))
 
 (def pointer-within dnd-kit/pointerWithin)
 
+;; (defn use-draggable
+;;   ([id] (use-draggable id {}))
+;;   ([id data]
+;;    (-> (js->clj (dnd-kit/useDraggable #js {:id id
+;;                                            :data data})
+;;                 :keywordize-keys true)
+;;        (#(doto % js/console.log))
+;;        (update-in [:listeners] (fn [listeners] (js->clj listeners
+
 (defn use-draggable
   ([id] (use-draggable id {}))
   ([id data]
-   (-> (js->clj (dnd-kit/useDraggable #js {:id id
-                                           :data data})
-                :keywordize-keys true)
-       (#(doto % js/console.log))
-       (update-in [:listeners] (fn [listeners] (js->clj listeners
-                                                        :keywordize-keys true))))))
+   (let [{:keys [transform] :as m} (js->clj (dnd-kit/useDraggable #js {:id id
+                                                                       :data data})
+                                            :keywordize-keys true)]
+     (cond-> m
+         :always (update :listeners (fn [listeners] (js->clj listeners :keywordize-keys true)))
+         transform (assoc :style {:transform (gstring/format "translate3D(%spx,%spx,0)" (:x transform) (:y transform))
+                                  :z-index 9999
+                                  :backdrop-filter "blur(10px)"})))))
+:keywordize-keys true
 (defn use-droppable
   ([id] (use-droppable id {}))
   ([id data]
