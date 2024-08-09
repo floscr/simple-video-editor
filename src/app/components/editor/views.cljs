@@ -50,6 +50,10 @@
    :position "absolute"
    :inset 0})
 
+(css cropper-bar-border-css []
+  {:position "absolute"
+   :background "white"})
+
 ;; Component -------------------------------------------------------------------
 
 (defn translate-3D [axis]
@@ -82,8 +86,46 @@
                                :cursor "row-resize"
                                :transform (when isDragging (translate-y dnd-opts pos?))
                                :z-index 1}
-                         nil)
-                :on-pointer-down (get-in bar-dnd [:listeners :onPointerDown])})
+                         :bottom {:bottom size-offset
+                                  :left 0
+                                  :right 0
+                                  :height "10px"
+                                  :cursor "row-resize"
+                                  :transform (when isDragging (translate-y dnd-opts pos?))
+                                  :z-index 1}
+                         :right {:right size-offset
+                                 :top 0
+                                 :bottom 0
+                                 :width "10px"
+                                 :cursor "col-resize"
+                                 :transform (when isDragging (translate-x dnd-opts neg?))
+                                 :z-index 1}
+                         :left {:left size-offset
+                                :top 0
+                                :bottom 0
+                                :width "10px"
+                                :cursor "col-resize"
+                                :transform (when isDragging (translate-x dnd-opts pos?))
+                                :z-index 1})
+                :on-pointer-down (get-in bar-dnd [:listeners :onPointerDown])}
+          ($ :div {:class (cropper-bar-border-css)
+                   :style (case direction
+                            :top {:top "50%"
+                                  :left 0
+                                  :right 0
+                                  :height "2px"}
+                            :left {:top 0
+                                   :left "50%"
+                                   :bottom 0
+                                   :width "2px"}
+                            :right {:top 0
+                                    :right "-50%"
+                                    :bottom 0
+                                    :width "2px"}
+                            :bottom {:bottom "-50%"
+                                     :left 0
+                                     :right 0
+                                     :height "2px"})}))
        ($ :div
           {:ref (:setNodeRef circle-dnd)
            :style (case direction
@@ -109,11 +151,13 @@
 
 (defui CropRect []
   (let [{:keys [] :as dnd-opts} (dnd/use-draggable :crop-rect)]
-    ($ :div {:class (cropper-css)})))
+    (js/console.log dnd-opts)
+    ($ :div {:class (cropper-css)
+             :style {:top (str (get-in dnd-opts [:transform :y]) "px")}})))
 
 (defn Cropper []
   ($ :div {:class (cropper-wrapper-css)}
-     ($ CropRect)
+     ;; ($ CropRect)
      (for [direction [:top :right :bottom :left]]
        ($ CropCircle {:key direction
                       :direction direction}))))
