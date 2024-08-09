@@ -57,6 +57,9 @@
 
 ;; Component -------------------------------------------------------------------
 
+(defn px [v]
+  (str v "px"))
+
 (defn translate-3D [axis]
   (str "translate3D(" (str/join "," axis) ")"))
 
@@ -70,7 +73,7 @@
     (when (pred value)
       (translate-3D [0 (str value "px") 0]))))
 
-(defui CropCircle [{:keys [direction]}]
+(defui CropCircle [{:keys [direction offset]}]
   (let [bar-dnd (dnd/use-draggable direction)
         circle-dnd (dnd/use-draggable direction)
         {:keys [isDragging] :as dnd-opts} bar-dnd
@@ -85,28 +88,36 @@
                                :right 0
                                :height "10px"
                                :cursor "row-resize"
-                               :transform (when isDragging (translate-y dnd-opts pos?))
+                               :transform (if isDragging
+                                            (translate-y dnd-opts pos?)
+                                            (translate-3D [0 (px (:top offset)) 0]))
                                :z-index 1}
                          :bottom {:bottom size-offset
                                   :left 0
                                   :right 0
                                   :height "10px"
                                   :cursor "row-resize"
-                                  :transform (when isDragging (translate-y dnd-opts pos?))
+                                  :transform (if isDragging
+                                               (translate-y dnd-opts pos?)
+                                               (translate-3D [0 (px (:bottom offset)) 0]))
                                   :z-index 1}
                          :right {:right size-offset
                                  :top 0
                                  :bottom 0
                                  :width "10px"
                                  :cursor "col-resize"
-                                 :transform (when isDragging (translate-x dnd-opts neg?))
+                                 :transform (if isDragging
+                                              (translate-x dnd-opts neg?)
+                                              (translate-3D [(px (:right offset)) 0 0]))
                                  :z-index 1}
                          :left {:left size-offset
                                 :top 0
                                 :bottom 0
                                 :width "10px"
                                 :cursor "col-resize"
-                                :transform (when isDragging (translate-x dnd-opts pos?))
+                                :transform (if isDragging
+                                             (translate-x dnd-opts pos?)
+                                             (translate-3D [(px (:left offset)) 0 0]))
                                 :z-index 1})
                 :on-pointer-down (get-in bar-dnd [:listeners :onPointerDown])})
        ($ :div
@@ -115,48 +126,67 @@
                     :top    {:top size-offset
                              :left center-offset
                              :cursor "row-resize"
-                             :transform (when isDragging (translate-y dnd-opts pos?))}
+                             :transform (if isDragging
+                                          (translate-y dnd-opts pos?)
+                                          (translate-3D [0 (px (:top offset)) 0]))}
                     :bottom {:bottom size-offset
                              :left center-offset
                              :cursor "row-resize"
-                             :transform (when isDragging (translate-y dnd-opts neg?))}
+                             :transform (if isDragging
+                                          (translate-y dnd-opts neg?)
+                                          (translate-3D [0 (px (:bottom offset)) 0]))}
                     :right  {:top center-offset
                              :right size-offset
                              :cursor "col-resize"
-                             :transform (when isDragging (translate-x dnd-opts neg?))}
+                             :transform (if isDragging
+                                          (translate-x dnd-opts neg?)
+                                          (translate-3D [(px (:right offset)) 0 0]))}
                     :left   {:left size-offset
                              :top center-offset
                              :cursor "col-resize"
-                             :transform (when isDragging (translate-x dnd-opts pos?))})
+                             :transform (if isDragging
+                                          (translate-x dnd-opts pos?)
+                                          (translate-3D [(px (:left offset)) 0 0]))})
            :class (cropper-handle-css direction)
            :on-pointer-down (get-in circle-dnd [:listeners :onPointerDown])}))))
 
 
-(defui CropRect [{:keys [ref]}]
+(defui CropRect [{:keys [ref offset]}]
   ($ :div {:ref ref
-           :class (cropper-css)}))
+           :class (cropper-css)
+           :style {:top (px (:top offset))}}))
 
-(defui Cropper [{:keys [resizer-ref]}]
+(defui Cropper [{:keys [resizer-ref offset]}]
   ($ :div {:class (cropper-wrapper-css)}
-     ($ CropRect {:ref resizer-ref})
+     ($ CropRect {:ref resizer-ref
+                  :offset offset})
      (for [direction [:top :right :bottom :left]]
        ($ CropCircle {:key direction
-                      :direction direction}))))
-
-(defn px [v]
-  (str v "px"))
+                      :direction direction
+                      :offset offset}))))
 
 (defui Editor []
   (let [[video-url set-video-url!] (uix/use-state nil)
         [crop set-crop!] (uix/use-state #js {:x 0 :y 0})
         [zoom set-zoom!] (uix/use-state 1)
+        [offset set-offset!] (uix/use-state {:top 0
+                                             :bottom 0
+                                             :left 0
+                                             :right 0})
         resizer-ref (uix/use-ref)]
+    (js/console.log "offset" offset)
     ($ dnd/context
-       {:on-drag-end (fn [_]
-                       (set! (.. @resizer-ref -style -left) nil)
-                       (set! (.. @resizer-ref -style -top) nil)
-                       (set! (.. @resizer-ref -style -right) nil)
-                       (set! (.. @resizer-ref -style -bottom) nil))
+       {:on-drag-end (fn [opts]
+                       (let [id (.. opts -active -id)
+                             y (.. opts -delta -y)
+                             x (.. opts -delta -x)]
+                         (js/console.log "x" x)
+                         (cond-> offset
+                           (= id :top) (assoc :top (max 0 y))
+                           (= id :bottom) (assoc :bottom (min 0 y))
+                           (= id :right) (assoc :right (min 0 x))
+                           (= id :left) (assoc :left (max 0 x))
+                           :always set-offset!)))
         :on-drag-move (fn [opts]
                         (let [id (.. opts -active -id)
                               y (.. opts -delta -y)
@@ -165,8 +195,7 @@
                             :top (set! (.. @resizer-ref -style -top) (when (pos? y) (px y)))
                             :bottom (set! (.. @resizer-ref -style -bottom) (when (neg? y) (px (- y))))
                             :left (set! (.. @resizer-ref -style -left) (when (pos? x) (px x)))
-                            :right (set! (.. @resizer-ref -style -right) (when (neg? x) (px (- x))))
-                            nil)))}
+                            :right (set! (.. @resizer-ref -style -right) (when (neg? x) (px (- x)))))))}
        ($ :div {:class (wrapper-css)}
           ($ :input
              {:type "file"
@@ -177,7 +206,8 @@
                              (set-video-url! url)))})
           (when video-url
             ($ :div {:class (video-wrapper-css)}
-               ($ Cropper {:resizer-ref resizer-ref})
+               ($ Cropper {:resizer-ref resizer-ref
+                           :offset offset})
                ($ :video
                   {:class [(video-css)]
                    :src video-url})))))))
