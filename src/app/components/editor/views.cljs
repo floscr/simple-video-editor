@@ -2,7 +2,8 @@
   (:require
    [app.utils.css.core :refer-macros [css]]
    [app.bindings.dnd-kit.core :as dnd]
-   [uix.core :as uix :refer [$ defui]]))
+   [uix.core :as uix :refer [$ defui]]
+   [cuerdas.core :as str]))
 
 ;; Styles ----------------------------------------------------------------------
 
@@ -36,35 +37,53 @@
    "--offset" "calc(var(--size) / 2)"
    :position "absolute"
    :z-index "1"
-   :background "red"
+   :background "oklch(100% 0 0)"
+   :box-shadow "0 0 0 1px var(--border-color)"
    :width "var(--size)"
    :aspect-ratio "1 / 1"
    :border-radius "99999px"})
 
 ;; Component -------------------------------------------------------------------
 
+(defn translate-3D [axis]
+  (str "translate3D(" (str/join "," axis) ")"))
+
+(defn translate-x [dnd-opts pred]
+  (let [value (get-in dnd-opts [:transform :x])]
+    (when (pred value)
+      (translate-3D [(str value "px") 0 0]))))
+
+(defn translate-y [dnd-opts pred]
+  (let [value (get-in dnd-opts [:transform :y])]
+    (when (pred value)
+      (translate-3D [0 (str value "px") 0]))))
+
 (defui CropCircle [{:keys [direction]}]
-  (let [{:keys [setNodeRef listeners style] :as dnd-opts} (dnd/use-draggable direction)]
-    ($ :div
-       {:ref setNodeRef
-        :style (let [size-offset "calc(var(--offset) * -1)"
-                     center-offset "calc(50% - var(--offset))"]
-                 (-> (case direction
-                       :top {:top size-offset
-                             :left center-offset
-                             :cursor "row-resize"}
-                       :right {:top center-offset
-                               :right size-offset
-                               :cursor "col-resize"}
-                       :left {:left size-offset
-                              :top center-offset
-                               :cursor "col-resize"}
-                       :bottom {:bottom size-offset
-                                :left center-offset
-                                :cursor "row-resize"})
-                     (merge style)))
-        :class (cropper-handle-css direction)
-        :on-pointer-down (:onPointerDown listeners)})))
+  (let [{:keys [isDragging setNodeRef listeners style] :as dnd-opts} (dnd/use-draggable direction)]
+    ($ :<>
+       ($ :div
+          {:ref setNodeRef
+           :style (let [size-offset "calc(var(--offset) * -1)"
+                        center-offset "calc(50% - var(--offset))"]
+                    (-> (case direction
+                          :top    {:top size-offset
+                                   :left center-offset
+                                   :cursor "row-resize"
+                                   :transform (when isDragging (translate-y dnd-opts pos?))}
+                          :bottom {:bottom size-offset
+                                   :left center-offset
+                                   :cursor "row-resize"
+                                   :transform (when isDragging (translate-y dnd-opts neg?))}
+                          :right  {:top center-offset
+                                   :right size-offset
+                                   :cursor "col-resize"
+                                   :transform (when isDragging (translate-x dnd-opts neg?))}
+                          :left   {:left size-offset
+                                   :top center-offset
+                                   :cursor "col-resize"
+                                   :transform (when isDragging (translate-x dnd-opts pos?))})))
+           :class (cropper-handle-css direction)
+           :on-pointer-down (:onPointerDown listeners)}))))
 
 (defn Cropper [{:keys [children]}]
   ($ :div {:class (cropper-css)}

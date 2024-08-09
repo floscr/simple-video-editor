@@ -1,5 +1,6 @@
 {:deps {org.clojure/clojure {:mvn/version "1.11.1"}
         org.clojure/clojurescript {:mvn/version "1.11.60"}
+        funcool/cuerdas {:mvn/version "2023.11.09-407"}
         dev.weavejester/medley {:mvn/version "1.7.0"}
         lambdaisland/fetch {:mvn/version "1.5.83"}
         org.flatland/ordered {:mvn/version "1.15.11"}
