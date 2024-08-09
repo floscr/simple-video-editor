@@ -166,7 +166,35 @@
 (defui CropRect [{:keys [ref offset]}]
   ($ :div {:ref ref
            :class (cropper-css)
-           :style {:top (px (:top offset))}}))
+           :style {:top (px (:top offset))}}
+     ($ :div
+        {:style {:position "absolute"
+                 :width "1px"
+                 :top 0
+                 :bottom 0
+                 :left "33%"
+                 :background "oklch(100% 0 0 / 0.3)"}})
+     ($ :div
+        {:style {:position "absolute"
+                 :width "1px"
+                 :top 0
+                 :bottom 0
+                 :right "33%"
+                 :background "oklch(100% 0 0 / 0.3)"}})
+     ($ :div
+        {:style {:position "absolute"
+                 :height "1px"
+                 :left 0
+                 :right 0
+                 :top "33%"
+                 :background "oklch(100% 0 0 / 0.3)"}})
+     ($ :div
+        {:style {:position "absolute"
+                 :height "1px"
+                 :left 0
+                 :right 0
+                 :bottom "33%"
+                 :background "oklch(100% 0 0 / 0.3)"}})))
 
 (defui Cropper [{:keys [resizer-ref offset]}]
   ($ :div {:class (cropper-wrapper-css)}
