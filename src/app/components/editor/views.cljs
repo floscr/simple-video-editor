@@ -3,7 +3,8 @@
    [app.utils.css.core :refer-macros [css]]
    [app.bindings.dnd-kit.core :as dnd]
    [uix.core :as uix :refer [$ defui]]
-   [cuerdas.core :as str]))
+   [cuerdas.core :as str]
+   [goog.math :as gmath]))
 
 ;; Styles ----------------------------------------------------------------------
 
@@ -177,14 +178,22 @@
 (defn ffmpeg-command [{:keys [offset file-name]}]
   (str/join " " ["ffmpeg" "-i" file-name "-vf" (str "\" " \")]))
 
+(defn clamp
+  "Takes a number and clamps it to within the provided bounds.
+  Returns the input number if it is within bounds, or the nearest number within
+  the bounds."
+  [value min max]
+  (gmath/clamp value min max))
+
 (defui Editor []
   (let [[file-name set-file-name!] (uix/use-state nil)
         [video-dimensions set-video-dimensions!] (uix/use-state nil)
         [video-url set-video-url!] (uix/use-state nil)
-        [offset set-offset!] (uix/use-state {:top 0
-                                             :bottom 0
-                                             :left 0
-                                             :right 0})
+        default-offset {:top 0
+                        :bottom 0
+                        :left 0
+                        :right 0}
+        [offset set-offset!] (uix/use-state default-offset)
         resizer-ref (uix/use-ref)
         video-ref (uix/use-ref)]
     (uix/use-effect
@@ -199,18 +208,19 @@
            (.addEventListener @video-ref "loadedmetadata" f)
            #(.removeEventListener @video-ref "loadedmetadata" f))))
      [video-url])
-    (js/console.log "video-dimensions" video-dimensions)
     ($ dnd/context
        {:on-drag-end (fn [opts]
                        (let [id (.. opts -active -id)
                              y (.. opts -delta -y)
-                             x (.. opts -delta -x)]
-                         (js/console.log "x" x)
+                             x (.. opts -delta -x)
+                             max-height (:element-height video-dimensions)
+                             max-width (:element-width video-dimensions)
+                             padding 10]
                          (cond-> offset
-                           (= id :top) (assoc :top (max 0 y))
-                           (= id :bottom) (assoc :bottom (min 0 y))
-                           (= id :right) (assoc :right (min 0 x))
-                           (= id :left) (assoc :left (max 0 x))
+                           (= id :top) (assoc :top (gmath/clamp y 0 (+ max-height (:bottom offset) (- padding))))
+                           (= id :bottom) (assoc :bottom (gmath/clamp y (+ (- max-height) (:top offset) padding) 0))
+                           (= id :left) (assoc :left (gmath/clamp x 0 (+ max-width (:right offset) (- padding))))
+                           (= id :right) (assoc :right (gmath/clamp x (+ (- max-width) (:left offset) padding) 0))
                            :always set-offset!)))
         :on-drag-move (fn [opts]
                         (let [id (.. opts -active -id)
