@@ -143,6 +143,9 @@
        ($ CropCircle {:key direction
                       :direction direction}))))
 
+(defn px [v]
+  (str v "px"))
+
 (defui Editor []
   (let [[video-url set-video-url!] (uix/use-state nil)
         [crop set-crop!] (uix/use-state #js {:x 0 :y 0})
@@ -155,12 +158,14 @@
                        (set! (.. @resizer-ref -style -right) nil)
                        (set! (.. @resizer-ref -style -bottom) nil))
         :on-drag-move (fn [opts]
-                        (let [id (.. opts -active -id)]
+                        (let [id (.. opts -active -id)
+                              y (.. opts -delta -y)
+                              x (.. opts -delta -x)]
                           (case id
-                            :top (set! (.. @resizer-ref -style -top) (str (.. opts -delta -y) "px"))
-                            :bottom (set! (.. @resizer-ref -style -bottom) (str (- (.. opts -delta -y)) "px"))
-                            :left (set! (.. @resizer-ref -style -left) (str (.. opts -delta -x) "px"))
-                            :right (set! (.. @resizer-ref -style -right) (str (- (.. opts -delta -x)) "px"))
+                            :top (set! (.. @resizer-ref -style -top) (when (pos? y) (px y)))
+                            :bottom (set! (.. @resizer-ref -style -bottom) (when (neg? y) (px (- y))))
+                            :left (set! (.. @resizer-ref -style -left) (when (pos? x) (px x)))
+                            :right (set! (.. @resizer-ref -style -right) (when (neg? x) (px (- x))))
                             nil)))}
        ($ :div {:class (wrapper-css)}
           ($ :input
