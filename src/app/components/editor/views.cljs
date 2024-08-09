@@ -165,6 +165,9 @@
                       :direction direction
                       :offset offset}))))
 
+(defn ffmpeg-command [{:keys [offset file-name]}]
+  (str/join " " ["ffmpeg" "-i" file-name "-vf" (str "\" " \")]))
+
 (defui Editor []
   (let [[file-name set-file-name!] (uix/use-state nil)
         [video-dimensions set-video-dimensions!] (uix/use-state nil)
@@ -227,3 +230,6 @@
                      {:class [(video-css)]
                       :ref video-ref
                       :src video-url}))
+               ($ :input {:read-only true
+                          :value (ffmpeg-command {:offset offset
+                                                  :file-name file-name})})))))))
