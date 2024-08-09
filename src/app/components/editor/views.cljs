@@ -15,7 +15,9 @@
    :align-items "center"
    :justify-content "center"
    :gap "10px"
-   :background "oklch(10% 0.15 200)"})
+   :background "oklch(10% 0.15 200)"
+   "button" {:background "white"
+             :color "black"}})
 
 (css video-css []
   {:display "block"
@@ -220,6 +222,9 @@
                             :left (set! (.. @resizer-ref -style -left) (when (pos? x) (px x)))
                             :right (set! (.. @resizer-ref -style -right) (when (neg? x) (px (- x)))))))}
        ($ :div {:class (wrapper-css)}
+          ($ :button
+             {:on-pointer-down #(set-offset! default-offset)}
+             "Reset")
           ($ :input
              {:type "file"
               :accept "video/*"
