@@ -14,6 +14,7 @@
    :flex-direction "column"
    :align-items "center"
    :justify-content "center"
+   :gap "10px"
    :background "oklch(90% 0 0)"})
 
 (css video-css []
