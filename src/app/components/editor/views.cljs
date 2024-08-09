@@ -18,7 +18,9 @@
    :gap "10px"
    :background "oklch(10% 0.15 200)"
    "button" {:background "white"
-             :color "black"}})
+             :color "black"
+             :padding "var(--spacing-1-5) var(--spacing-2)"
+             :border-radius "var(--spacing-1)"}})
 
 (css video-css []
   {:display "block"
