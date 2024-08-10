@@ -28,3 +28,6 @@ dict.edn
 /scripts/en-us.edn
 /out/
 /.jest/
+/public/cljs-runtime/
+/public/main.js
+/public/manifest.edn
