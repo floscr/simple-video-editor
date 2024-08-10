@@ -217,43 +217,52 @@
                                            :element-width (.-clientWidth @video-ref)
                                            :element-height (.-clientHeight @video-ref)}))]
            (.addEventListener @video-ref "loadedmetadata" f)
-           #(.removeEventListener @video-ref "loadedmetadata" f))))
+           #(when @video-ref (.removeEventListener @video-ref "loadedmetadata" f)))))
      [video-url])
     ($ dnd/context
        (let [max-height (:element-height video-dimensions)
              max-width (:element-width video-dimensions)
              padding 10
+             top-offset (uix/use-callback
+                         (fn [y]
+                           (-> (+ y (:top offset))
+                               (gmath/clamp 0 (+ max-height (:bottom offset) (- padding)))))
+                         [offset max-height padding])
+             bottom-offset (uix/use-callback
+                            (fn [y]
+                              (-> (- (+ y (:bottom offset)))
+                                  (gmath/clamp 0 (- max-height (:top offset) padding))))
+                            [offset max-height padding])
              right-offset (uix/use-callback
                            (fn [x]
                              (-> (- (+ x (:right offset)))
                                  (gmath/clamp 0 (- max-width (:left offset) padding))))
-                           [offset max-width padding])]
+                           [offset max-width padding])
+             left-offset (uix/use-callback
+                          (fn [x]
+                            (-> (+ x (:left offset))
+                                (gmath/clamp 0 (+ max-width (:right offset) (- padding)))))
+                          [offset max-width padding])]
          {:on-drag-end (fn [opts]
                          (let [id (.. opts -active -id)
                                y (.. opts -delta -y)
-                               x (.. opts -delta -x)
-                               max-height (:element-height video-dimensions)
-                               max-width (:element-width video-dimensions)
-                               padding 10]
-                           (set! (.. @resizer-ref -style -right) nil)
+                               x (.. opts -delta -x)]
                            (cond-> offset
-                             (= id :top) (assoc :top (gmath/clamp y 0 (+ max-height (:bottom offset) (- padding))))
-                             (= id :bottom) (assoc :bottom (gmath/clamp y (+ (- max-height) (:top offset) padding) 0))
-                             (= id :left) (assoc :left (gmath/clamp x 0 (+ max-width (:right offset) (- padding))))
+                             (= id :top) (assoc :top (top-offset y))
+                             (= id :bottom) (assoc :bottom (bottom-offset y))
+                             (= id :left) (assoc :left (left-offset x))
                              (= id :right) (assoc :right (right-offset x))
                              :always set-offset!)))
           :on-drag-move (fn [opts]
                           (let [id (.. opts -active -id)
-                                max-height (:element-height video-dimensions)
-                                max-width (:element-width video-dimensions)
                                 y (.. opts -delta -y)
                                 x (.. opts -delta -x)
-                                padding 10]
+                                style (.. @resizer-ref -style)]
                             (case id
-                              :top (set! (.. @resizer-ref -style -top) (when (pos? y) (px y)))
-                              :bottom (set! (.. @resizer-ref -style -bottom) (when (neg? y) (px (- y))))
-                              :left (set! (.. @resizer-ref -style -left) (when (pos? x) (px x)))
-                              :right (set! (.. @resizer-ref -style -right) (px #p (right-offset x))))))})
+                              :top (set! (.. style -top) (px (top-offset y)))
+                              :bottom (set! (.. style -bottom) (px (bottom-offset y)))
+                              :left (set! (.. style -left) (px (left-offset x)))
+                              :right (set! (.. style -right) (px (right-offset x))))))})
        ($ :div {:class (wrapper-css)}
           ($ :button
              {:on-pointer-down #(set-offset! default-offset)}
