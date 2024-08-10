@@ -187,8 +187,21 @@
                          :direction direction
                          :offset offset})))))
 
-(defn ffmpeg-command [{:keys [offset file-name]}]
-  (str/join " " ["ffmpeg" "-i" file-name "-vf" (str "\" " \")]))
+(defn ffmpeg-command [{:keys [offset file-name video-dimensions]}]
+  (let [{:keys [element-width width element-height height]} video-dimensions
+        _ (js/console.log "video-dimensions" video-dimensions)
+        width-ratio (/ width element-width)
+        height-ratio (/ height element-height)
+        x (* (:left offset) width-ratio)
+        y (* (:top offset) height-ratio)
+        dst-width (* (- element-width (:left offset) (:right offset)) width-ratio)
+        dst-height (* (- element-height (:top offset) (:bottom offset)) height-ratio)]
+    (str/join " " ["ffmpeg"
+                   "-i" (str "file:" file-name)
+                   "-vf" (str "\"crop=" (->> [dst-width dst-height x y]
+                                             (map js/Math.round)
+                                             (str/join ":")) "\"")
+                   "-y" "output.mp4"])))
 
 (defn clamp
   "Takes a number and clamps it to within the provided bounds.
@@ -286,7 +299,8 @@
                       :ref video-ref
                       :src video-url}))
                (let [command (ffmpeg-command {:offset offset
-                                              :file-name file-name})]
+                                              :file-name file-name
+                                              :video-dimensions video-dimensions})]
                  ($ :input {:class (ffmpeg-command-css)
                             :read-only true
                             #_#_:style {:width (str (count command) "ch")}
