@@ -7,27 +7,14 @@
 
 (def pointer-within dnd-kit/pointerWithin)
 
-;; (defn use-draggable
-;;   ([id] (use-draggable id {}))
-;;   ([id data]
-;;    (-> (js->clj (dnd-kit/useDraggable #js {:id id
-;;                                            :data data})
-;;                 :keywordize-keys true)
-;;        (#(doto % js/console.log))
-;;        (update-in [:listeners] (fn [listeners] (js->clj listeners
-
 (defn use-draggable
   ([id] (use-draggable id {}))
   ([id data]
-   (let [{:keys [transform] :as m} (js->clj (dnd-kit/useDraggable #js {:id id
-                                                                       :data data})
-                                            :keywordize-keys true)]
-     (cond-> m
-         :always (update :listeners (fn [listeners] (js->clj listeners :keywordize-keys true)))
-         transform (assoc :style {:transform (gstring/format "translate3D(%spx,%spx,0)" (:x transform) (:y transform))
-                                  :z-index 9999
-                                  :backdrop-filter "blur(10px)"})))))
-:keywordize-keys true
+   (-> (js->clj (dnd-kit/useDraggable #js {:id id
+                                           :data data})
+                :keywordize-keys true)
+       (update-in [:listeners] (fn [listeners] (js->clj listeners :keywordize-keys true))))))
+
 (defn use-droppable
   ([id] (use-droppable id {}))
   ([id data]
@@ -50,10 +37,9 @@
 (defn use-default-sensors []
   (dnd-kit/useSensors
    (dnd-kit/useSensor dnd-kit/MouseSensor
-                      (j/lit {:activationConstraint {:distance activation-constraint}}))
+                      (j/lit {:activationConstraint {:distance 0}}))
    (dnd-kit/useSensor dnd-kit/PointerSensor
-                      (j/lit {:activationConstraint
-                              {:distance 8}}))))
+                      (j/lit {:activationConstraint {:distance 0}}))))
 
 (defui context [{:keys [on-drag-start
                         on-drag-end

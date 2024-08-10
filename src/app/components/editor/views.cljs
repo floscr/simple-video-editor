@@ -92,81 +92,61 @@
         size-offset "calc(var(--offset) * -1)"
         center-offset "calc(50% - var(--offset))"]
     ($ :<>
-       ($ :div {:ref (:setNodeRef bar-dnd)
-                :class (cropper-bar-css)
-                :style (case direction
-                         :top {:top size-offset
-                               :left 0
-                               :right 0
-                               :height "10px"
-                               :cursor "row-resize"
-                               :transform (if isDragging
-                                            (translate-y dnd-opts pos?)
-                                            (translate-3D [0 (px (:top offset)) 0]))
-                               :z-index 1}
-                         :bottom {:bottom size-offset
-                                  :left 0
-                                  :right 0
-                                  :height "10px"
-                                  :cursor "row-resize"
-                                  :transform (if isDragging
-                                               (translate-y dnd-opts pos?)
-                                               (translate-3D [0 (px (:bottom offset)) 0]))
-                                  :z-index 1}
-                         :right {:right size-offset
-                                 :top 0
-                                 :bottom 0
-                                 :width "10px"
-                                 :cursor "col-resize"
-                                 :transform (if isDragging
-                                              (translate-x dnd-opts neg?)
-                                              (translate-3D [(px (:right offset)) 0 0]))
+       #_($ :div {:ref (:setNodeRef bar-dnd)
+                  :class (cropper-bar-css)
+                  :style (case direction
+                           :top {:top size-offset
+                                 :left 0
+                                 :right 0
+                                 :height "10px"
+                                 :cursor "row-resize"
                                  :z-index 1}
-                         :left {:left size-offset
-                                :top 0
-                                :bottom 0
-                                :width "10px"
-                                :cursor "col-resize"
-                                :transform (if isDragging
-                                             (translate-x dnd-opts pos?)
-                                             (translate-3D [(px (:left offset)) 0 0]))
-                                :z-index 1})
-                :on-pointer-down (get-in bar-dnd [:listeners :onPointerDown])})
+                           :bottom {:bottom size-offset
+                                    :left 0
+                                    :right 0
+                                    :height "10px"
+                                    :cursor "row-resize"
+                                    :z-index 1}
+                           :right {:right size-offset
+                                   :top 0
+                                   :bottom 0
+                                   :width "10px"
+                                   :cursor "col-resize"
+                                   :z-index 1}
+                           :left {:left size-offset
+                                  :top 0
+                                  :bottom 0
+                                  :width "10px"
+                                  :cursor "col-resize"
+                                  :z-index 1})
+                  :on-pointer-down (get-in bar-dnd [:listeners :onPointerDown])})
        ($ :div
           {:ref (:setNodeRef circle-dnd)
            :style (case direction
                     :top    {:top size-offset
                              :left center-offset
-                             :cursor "row-resize"
-                             :transform (if isDragging
-                                          (translate-y dnd-opts pos?)
-                                          (translate-3D [0 (px (:top offset)) 0]))}
+                             :cursor "row-resize"}
                     :bottom {:bottom size-offset
                              :left center-offset
-                             :cursor "row-resize"
-                             :transform (if isDragging
-                                          (translate-y dnd-opts neg?)
-                                          (translate-3D [0 (px (:bottom offset)) 0]))}
+                             :cursor "row-resize"}
                     :right  {:top center-offset
                              :right size-offset
-                             :cursor "col-resize"
-                             :transform (if isDragging
-                                          (translate-x dnd-opts neg?)
-                                          (translate-3D [(px (:right offset)) 0 0]))}
+                             :cursor "col-resize"}
                     :left   {:left size-offset
                              :top center-offset
-                             :cursor "col-resize"
-                             :transform (if isDragging
-                                          (translate-x dnd-opts pos?)
-                                          (translate-3D [(px (:left offset)) 0 0]))})
+                             :cursor "col-resize"})
            :class (cropper-handle-css direction)
            :on-pointer-down (get-in circle-dnd [:listeners :onPointerDown])}))))
 
 
-(defui CropRect [{:keys [ref offset]}]
+(defui CropRect [{:keys [ref offset children]}]
   ($ :div {:ref ref
            :class (cropper-css)
-           :style {:top (px (:top offset))}}
+           :style {:top (px (:top offset))
+                   :bottom (px (:bottom offset))
+                   :right (px (:right offset))
+                   :left (px (:left offset))}}
+
      ($ :div
         {:style {:position "absolute"
                  :width "1px"
@@ -194,16 +174,17 @@
                  :left 0
                  :right 0
                  :bottom "33%"
-                 :background "oklch(100% 0 0 / 0.3)"}})))
+                 :background "oklch(100% 0 0 / 0.3)"}})
+     children))
 
 (defui Cropper [{:keys [resizer-ref offset]}]
   ($ :div {:class (cropper-wrapper-css)}
      ($ CropRect {:ref resizer-ref
-                  :offset offset})
-     (for [direction [:top :right :bottom :left]]
-       ($ CropCircle {:key direction
-                      :direction direction
-                      :offset offset}))))
+                  :offset offset}
+        (for [direction [:top :right :bottom :left]]
+          ($ CropCircle {:key direction
+                         :direction direction
+                         :offset offset})))))
 
 (defn ffmpeg-command [{:keys [offset file-name]}]
   (str/join " " ["ffmpeg" "-i" file-name "-vf" (str "\" " \")]))
@@ -246,21 +227,26 @@
                              max-height (:element-height video-dimensions)
                              max-width (:element-width video-dimensions)
                              padding 10]
+                         (set! (.. @resizer-ref -style -right) nil)
                          (cond-> offset
                            (= id :top) (assoc :top (gmath/clamp y 0 (+ max-height (:bottom offset) (- padding))))
                            (= id :bottom) (assoc :bottom (gmath/clamp y (+ (- max-height) (:top offset) padding) 0))
                            (= id :left) (assoc :left (gmath/clamp x 0 (+ max-width (:right offset) (- padding))))
-                           (= id :right) (assoc :right (gmath/clamp x (+ (- max-width) (:left offset) padding) 0))
+                           (= id :right) (assoc :right (+ (- x) (- (:right offset))))
                            :always set-offset!)))
         :on-drag-move (fn [opts]
                         (let [id (.. opts -active -id)
+                              max-height (:element-height video-dimensions)
+                              max-width (:element-width video-dimensions)
                               y (.. opts -delta -y)
-                              x (.. opts -delta -x)]
+                              x (.. opts -delta -x)
+                              padding 10]
                           (case id
                             :top (set! (.. @resizer-ref -style -top) (when (pos? y) (px y)))
                             :bottom (set! (.. @resizer-ref -style -bottom) (when (neg? y) (px (- y))))
                             :left (set! (.. @resizer-ref -style -left) (when (pos? x) (px x)))
-                            :right (set! (.. @resizer-ref -style -right) (when (neg? x) (px (- x)))))))}
+                            :right (set! (.. @resizer-ref -style -right)
+                                         (-> (+ (- x) (- (:right offset))) (px))))))}
        ($ :div {:class (wrapper-css)}
           ($ :button
              {:on-pointer-down #(set-offset! default-offset)}
