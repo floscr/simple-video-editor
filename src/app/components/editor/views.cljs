@@ -212,12 +212,17 @@
 (defui Editor []
   (let [[file-name set-file-name!] (uix/use-state nil)
         [video-dimensions set-video-dimensions!] (uix/use-state nil)
-        [video-url set-video-url!] (uix/use-state nil)
         default-offset {:top 0
                         :bottom 0
                         :left 0
                         :right 0}
         [offset set-offset!] (uix/use-state default-offset)
+        [video-url set-video-url!] (uix/use-state nil)
+        load-video! (uix/use-callback
+                     (fn [url]
+                       (set-offset! default-offset)
+                       (set-video-url! url))
+                     [default-offset])
         example-video-url "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
         resizer-ref (uix/use-ref)
         video-ref (uix/use-ref)]
@@ -280,7 +285,7 @@
                               :right (set! (.. style -right) (px (right-offset x))))))})
        ($ :div {:class (wrapper-css)}
           ($ :button
-             {:on-pointer-down #(set-video-url! example-video-url)}
+             {:on-pointer-down #(load-video! example-video-url)}
              "Load example")
           ($ :button
              {:on-pointer-down #(set-offset! default-offset)}
@@ -292,7 +297,7 @@
                            (let [file (-> e .-target .-files (aget 0))
                                  url (js/URL.createObjectURL file)]
                              (set-file-name! (.-name file))
-                             (set-video-url! url)))})
+                             (load-video! url)))})
           (when video-url
             ($ :<>
                ($ :div {:class (video-wrapper-css)}
