@@ -36,7 +36,7 @@
    :position "absolute"
    :inset 0
    :border "1px solid oklch(100% 0 0)"
-   :box-shadow "0 0 0 1px var(--border-color), inset 0 0 0 1px var(--border-color)"})
+   :box-shadow "inset 0 0 0 1px var(--border-color)"})
 
 (css cropper-handle-css [k]
   {:position "absolute"
