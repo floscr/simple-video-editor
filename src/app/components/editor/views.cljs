@@ -64,6 +64,7 @@
 (css ffmpeg-command-css []
   {:background "white"
    :padding "10px"
+   :width "100%"
    :font-family "monospace"
    :border-radius "5px"})
 
@@ -288,6 +289,6 @@
                                               :file-name file-name})]
                  ($ :input {:class (ffmpeg-command-css)
                             :read-only true
-                            :style {:width (str (count command) "ch")}
+                            #_#_:style {:width (str (count command) "ch")}
                             :value command
                             :on-click #(.select (.-target %))}))))))))
