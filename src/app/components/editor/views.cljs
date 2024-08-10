@@ -93,34 +93,34 @@
         size-offset "calc(var(--offset) * -1)"
         center-offset "calc(50% - var(--offset))"]
     ($ :<>
-       #_($ :div {:ref (:setNodeRef bar-dnd)
-                  :class (cropper-bar-css)
-                  :style (case direction
-                           :top {:top size-offset
-                                 :left 0
-                                 :right 0
-                                 :height "10px"
-                                 :cursor "row-resize"
+       ($ :div {:ref (:setNodeRef bar-dnd)
+                :class (cropper-bar-css)
+                :style (case direction
+                         :top {:top size-offset
+                               :left 0
+                               :right 0
+                               :height "10px"
+                               :cursor "row-resize"
+                               :z-index 1}
+                         :bottom {:bottom size-offset
+                                  :left 0
+                                  :right 0
+                                  :height "10px"
+                                  :cursor "row-resize"
+                                  :z-index 1}
+                         :right {:right size-offset
+                                 :top 0
+                                 :bottom 0
+                                 :width "10px"
+                                 :cursor "col-resize"
                                  :z-index 1}
-                           :bottom {:bottom size-offset
-                                    :left 0
-                                    :right 0
-                                    :height "10px"
-                                    :cursor "row-resize"
-                                    :z-index 1}
-                           :right {:right size-offset
-                                   :top 0
-                                   :bottom 0
-                                   :width "10px"
-                                   :cursor "col-resize"
-                                   :z-index 1}
-                           :left {:left size-offset
-                                  :top 0
-                                  :bottom 0
-                                  :width "10px"
-                                  :cursor "col-resize"
-                                  :z-index 1})
-                  :on-pointer-down (get-in bar-dnd [:listeners :onPointerDown])})
+                         :left {:left size-offset
+                                :top 0
+                                :bottom 0
+                                :width "10px"
+                                :cursor "col-resize"
+                                :z-index 1})
+                :on-pointer-down (get-in bar-dnd [:listeners :onPointerDown])})
        ($ :div
           {:ref (:setNodeRef circle-dnd)
            :style (case direction
