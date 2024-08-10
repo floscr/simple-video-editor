@@ -68,6 +68,10 @@
    :font-family "monospace"
    :border-radius "5px"})
 
+(css alignment-bar-css []
+  {:position "absolute"
+   :background "oklch(100% 0 0 / 0.3)"})
+
 ;; Component -------------------------------------------------------------------
 
 (defn px [v]
@@ -139,6 +143,28 @@
            :class (cropper-handle-css direction)
            :on-pointer-down (get-in circle-dnd [:listeners :onPointerDown])}))))
 
+(defui AlignmentBars [{:keys []}]
+  ($ :<>
+     ($ :div {:class-name (alignment-bar-css)
+              :style {:width "1px"
+                      :top 0
+                      :bottom 0
+                      :left "33%"}})
+     ($ :div {:class-name (alignment-bar-css)
+              :style {:width "1px"
+                      :top 0
+                      :bottom 0
+                      :right "33%"}})
+     ($ :div {:class-name (alignment-bar-css)
+              :style {:height "1px"
+                      :left 0
+                      :right 0
+                      :top "33%"}})
+     ($ :div {:class-name (alignment-bar-css)
+              :style {:height "1px"
+                      :left 0
+                      :right 0
+                      :bottom "33%"}})))
 
 (defui CropRect [{:keys [ref offset children]}]
   ($ :div {:ref ref
@@ -147,35 +173,7 @@
                    :bottom (px (:bottom offset))
                    :right (px (:right offset))
                    :left (px (:left offset))}}
-
-     ($ :div
-        {:style {:position "absolute"
-                 :width "1px"
-                 :top 0
-                 :bottom 0
-                 :left "33%"
-                 :background "oklch(100% 0 0 / 0.3)"}})
-     ($ :div
-        {:style {:position "absolute"
-                 :width "1px"
-                 :top 0
-                 :bottom 0
-                 :right "33%"
-                 :background "oklch(100% 0 0 / 0.3)"}})
-     ($ :div
-        {:style {:position "absolute"
-                 :height "1px"
-                 :left 0
-                 :right 0
-                 :top "33%"
-                 :background "oklch(100% 0 0 / 0.3)"}})
-     ($ :div
-        {:style {:position "absolute"
-                 :height "1px"
-                 :left 0
-                 :right 0
-                 :bottom "33%"
-                 :background "oklch(100% 0 0 / 0.3)"}})
+     ($ AlignmentBars)
      children))
 
 (defui Cropper [{:keys [resizer-ref offset]}]
