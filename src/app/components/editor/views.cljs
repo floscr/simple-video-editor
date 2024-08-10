@@ -144,7 +144,7 @@
            :class (cropper-css)
            :style {:top (px (:top offset))
                    :bottom (px (:bottom offset))
-                   :right (px (:right offset))
+                   :right (px (- (:right offset)))
                    :left (px (:left offset))}}
 
      ($ :div
@@ -232,7 +232,7 @@
                            (= id :top) (assoc :top (gmath/clamp y 0 (+ max-height (:bottom offset) (- padding))))
                            (= id :bottom) (assoc :bottom (gmath/clamp y (+ (- max-height) (:top offset) padding) 0))
                            (= id :left) (assoc :left (gmath/clamp x 0 (+ max-width (:right offset) (- padding))))
-                           (= id :right) (assoc :right (+ (- x) (- (:right offset))))
+                           (= id :right) (assoc :right (+ x (:right offset)))
                            :always set-offset!)))
         :on-drag-move (fn [opts]
                         (let [id (.. opts -active -id)
@@ -246,7 +246,8 @@
                             :bottom (set! (.. @resizer-ref -style -bottom) (when (neg? y) (px (- y))))
                             :left (set! (.. @resizer-ref -style -left) (when (pos? x) (px x)))
                             :right (set! (.. @resizer-ref -style -right)
-                                         (-> (+ (- x) (- (:right offset))) (px))))))}
+                                         (-> (gmath/clamp (+ (- x) (- (:right offset))) 0 (- max-width (:left offset) padding))
+                                             (px))))))}
        ($ :div {:class (wrapper-css)}
           ($ :button
              {:on-pointer-down #(set-offset! default-offset)}
