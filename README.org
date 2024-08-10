@@ -4,10 +4,12 @@ A simple video editor that can be used to crop videos.
 
 For now the tool with give your an [[https://www.ffmpeg.org/][FFmpeg]] CLI command you can execute.
 
+Have a look at it: https://video-tool.florianschroedl.com
+
 * Getting Started
 
 #+begin_src
 bun install
-bun run dev
+bb dev
 xdg-open "http://localhost:1337"
 #+end_src
