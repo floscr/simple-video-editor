@@ -189,7 +189,6 @@
 
 (defn ffmpeg-command [{:keys [offset file-name video-dimensions]}]
   (let [{:keys [element-width width element-height height]} video-dimensions
-        _ (js/console.log "video-dimensions" video-dimensions)
         width-ratio (/ width element-width)
         height-ratio (/ height element-height)
         x (* (:left offset) width-ratio)
@@ -219,20 +218,22 @@
                         :left 0
                         :right 0}
         [offset set-offset!] (uix/use-state default-offset)
+        example-video-url "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
         resizer-ref (uix/use-ref)
         video-ref (uix/use-ref)]
     (uix/use-effect
      (fn [] ()
        (when (and @video-ref video-url)
-
          (let [f (fn [_e]
+                   (when (= video-url example-video-url)
+                     (set! (.-currentTime @video-ref) 10))
                    (set-video-dimensions! {:width (.-videoWidth @video-ref)
                                            :height (.-videoHeight @video-ref)
                                            :element-width (.-clientWidth @video-ref)
                                            :element-height (.-clientHeight @video-ref)}))]
            (.addEventListener @video-ref "loadedmetadata" f)
            #(when @video-ref (.removeEventListener @video-ref "loadedmetadata" f)))))
-     [video-url])
+     [video-url example-video-url])
     ($ dnd/context
        (let [max-height (:element-height video-dimensions)
              max-width (:element-width video-dimensions)
@@ -278,6 +279,9 @@
                               :left (set! (.. style -left) (px (left-offset x)))
                               :right (set! (.. style -right) (px (right-offset x))))))})
        ($ :div {:class (wrapper-css)}
+          ($ :button
+             {:on-pointer-down #(set-video-url! example-video-url)}
+             "Load example")
           ($ :button
              {:on-pointer-down #(set-offset! default-offset)}
              "Reset")
