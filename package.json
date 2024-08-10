@@ -1,6 +1,9 @@
 {
   "name": "org-web",
   "license": "MIT",
+  "scripts": {
+    "release": "shadow-cljs -A:dev release app"
+  },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.6",
     "@testing-library/react": "^14.1.2",
