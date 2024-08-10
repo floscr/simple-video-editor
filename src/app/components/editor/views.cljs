@@ -207,6 +207,26 @@
   [value min max]
   (gmath/clamp value min max))
 
+(defui Timeline [{:keys [video-ref]}]
+  (let [[playing? set-playing?!] (uix/use-state false)]
+    (uix/use-effect
+     (fn [] ()
+       (let [set-pause! (comp set-playing?! not)]
+         (.addEventListener @video-ref "pause" set-pause!)
+         (.addEventListener @video-ref "playing" set-playing?!)
+         (fn []
+           (.removeEventListener @video-ref "pause" set-pause!)
+           (.removeEventListener @video-ref "playing" set-playing?!))))
+     [video-ref])
+    ($ :div
+       ($ :button
+          {:on-click (fn []
+                       (js/console.log "playing?" playing?)
+                       (if (.-paused @video-ref)
+                         (.play @video-ref)
+                         (.pause @video-ref)))}
+          (if playing? "Pause" "Play")))))
+
 (defui Editor []
   (let [[file-name set-file-name!] (uix/use-state nil)
         [video-dimensions set-video-dimensions!] (uix/use-state nil)
@@ -305,6 +325,8 @@
                      {:class [(video-css)]
                       :ref video-ref
                       :src video-url}))
+               ($ Timeline
+                     {:video-ref video-ref})
                (let [command (ffmpeg-command {:offset offset
                                               :file-name file-name
                                               :video-dimensions video-dimensions})]
