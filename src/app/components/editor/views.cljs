@@ -55,6 +55,7 @@
    "--offset" "calc(var(--size) / 2)"
    "--border-color" "oklch(0% 0 0 / 0.5)"
    :position "absolute"
+   :overflow "hidden"
    :inset 0})
 
 (css cropper-bar-border-css []
@@ -166,7 +167,7 @@
                       :right 0
                       :bottom "33%"}})))
 
-(defui CropRect [{:keys [ref offset children]}]
+(defui CropRect [{:keys [ref offset children video-dimensions]}]
   ($ :div {:ref ref
            :class (cropper-css)
            :style {:top (px (:top offset))
@@ -174,12 +175,45 @@
                    :right (px (:right offset))
                    :left (px (:left offset))}}
      ($ AlignmentBars)
+     ($ :div {:style
+              {:position "absolute"
+               :left "-1px"
+               :top "-1px"
+               :bottom "-1px"
+               :width (px (* (:element-width video-dimensions) 2))
+               :translate "-100%"
+               :background-color "rgba(0, 0, 0, 0.6)"}})
+     ($ :div {:style
+              {:position "absolute"
+               :right "-1px"
+               :top "-1px"
+               :bottom "-1px"
+               :width (px (* (:element-width video-dimensions) 2))
+               :translate "100%"
+               :background-color "rgba(0, 0, 0, 0.6)"}})
+     ($ :div {:style
+              {:position "absolute"
+               :left (px (* (- (:element-height video-dimensions)) 2))
+               :right (px (* (- (:element-height video-dimensions)) 2))
+               :height (px (:element-height video-dimensions))
+               :top "-1px"
+               :translate "0% -100%"
+               :background-color "rgba(0, 0, 0, 0.6)"}})
+     ($ :div {:style
+              {:position "absolute"
+               :left (px (* (- (:element-height video-dimensions)) 2))
+               :right (px (* (- (:element-height video-dimensions)) 2))
+               :height (px (:element-height video-dimensions))
+               :bottom "-1px"
+               :translate "0% 100%"
+               :background-color "rgba(0, 0, 0, 0.6)"}})
      children))
 
-(defui Cropper [{:keys [resizer-ref offset]}]
+(defui Cropper [{:keys [resizer-ref offset video-dimensions]}]
   ($ :div {:class (cropper-wrapper-css)}
      ($ CropRect {:ref resizer-ref
-                  :offset offset}
+                  :offset offset
+                  :video-dimensions video-dimensions}
         (for [direction [:top :right :bottom :left]]
           ($ CropCircle {:key direction
                          :direction direction
@@ -320,7 +354,8 @@
             ($ :<>
                ($ :div {:class (video-wrapper-css)}
                   ($ Cropper {:resizer-ref resizer-ref
-                              :offset offset})
+                              :offset offset
+                              :video-dimensions video-dimensions})
                   ($ :video
                      {:class [(video-css)]
                       :ref video-ref
