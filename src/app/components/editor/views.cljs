@@ -144,7 +144,7 @@
            :class (cropper-css)
            :style {:top (px (:top offset))
                    :bottom (px (:bottom offset))
-                   :right (px (- (:right offset)))
+                   :right (px (:right offset))
                    :left (px (:left offset))}}
 
      ($ :div
@@ -220,34 +220,40 @@
            #(.removeEventListener @video-ref "loadedmetadata" f))))
      [video-url])
     ($ dnd/context
-       {:on-drag-end (fn [opts]
-                       (let [id (.. opts -active -id)
-                             y (.. opts -delta -y)
-                             x (.. opts -delta -x)
-                             max-height (:element-height video-dimensions)
-                             max-width (:element-width video-dimensions)
-                             padding 10]
-                         (set! (.. @resizer-ref -style -right) nil)
-                         (cond-> offset
-                           (= id :top) (assoc :top (gmath/clamp y 0 (+ max-height (:bottom offset) (- padding))))
-                           (= id :bottom) (assoc :bottom (gmath/clamp y (+ (- max-height) (:top offset) padding) 0))
-                           (= id :left) (assoc :left (gmath/clamp x 0 (+ max-width (:right offset) (- padding))))
-                           (= id :right) (assoc :right (+ x (:right offset)))
-                           :always set-offset!)))
-        :on-drag-move (fn [opts]
-                        (let [id (.. opts -active -id)
-                              max-height (:element-height video-dimensions)
-                              max-width (:element-width video-dimensions)
-                              y (.. opts -delta -y)
-                              x (.. opts -delta -x)
-                              padding 10]
-                          (case id
-                            :top (set! (.. @resizer-ref -style -top) (when (pos? y) (px y)))
-                            :bottom (set! (.. @resizer-ref -style -bottom) (when (neg? y) (px (- y))))
-                            :left (set! (.. @resizer-ref -style -left) (when (pos? x) (px x)))
-                            :right (set! (.. @resizer-ref -style -right)
-                                         (-> (gmath/clamp (+ (- x) (- (:right offset))) 0 (- max-width (:left offset) padding))
-                                             (px))))))}
+       (let [max-height (:element-height video-dimensions)
+             max-width (:element-width video-dimensions)
+             padding 10
+             right-offset (uix/use-callback
+                           (fn [x]
+                             (-> (- (+ x (:right offset)))
+                                 (gmath/clamp 0 (- max-width (:left offset) padding))))
+                           [offset max-width padding])]
+         {:on-drag-end (fn [opts]
+                         (let [id (.. opts -active -id)
+                               y (.. opts -delta -y)
+                               x (.. opts -delta -x)
+                               max-height (:element-height video-dimensions)
+                               max-width (:element-width video-dimensions)
+                               padding 10]
+                           (set! (.. @resizer-ref -style -right) nil)
+                           (cond-> offset
+                             (= id :top) (assoc :top (gmath/clamp y 0 (+ max-height (:bottom offset) (- padding))))
+                             (= id :bottom) (assoc :bottom (gmath/clamp y (+ (- max-height) (:top offset) padding) 0))
+                             (= id :left) (assoc :left (gmath/clamp x 0 (+ max-width (:right offset) (- padding))))
+                             (= id :right) (assoc :right (right-offset x))
+                             :always set-offset!)))
+          :on-drag-move (fn [opts]
+                          (let [id (.. opts -active -id)
+                                max-height (:element-height video-dimensions)
+                                max-width (:element-width video-dimensions)
+                                y (.. opts -delta -y)
+                                x (.. opts -delta -x)
+                                padding 10]
+                            (case id
+                              :top (set! (.. @resizer-ref -style -top) (when (pos? y) (px y)))
+                              :bottom (set! (.. @resizer-ref -style -bottom) (when (neg? y) (px (- y))))
+                              :left (set! (.. @resizer-ref -style -left) (when (pos? x) (px x)))
+                              :right (set! (.. @resizer-ref -style -right) (px #p (right-offset x))))))})
        ($ :div {:class (wrapper-css)}
           ($ :button
              {:on-pointer-down #(set-offset! default-offset)}
