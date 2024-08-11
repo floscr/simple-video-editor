@@ -1,9 +1,10 @@
 (ns app.components.editor.views
   (:require
+   [app.components.editor.dnd :as dnd]
    [app.utils.css.core :refer-macros [css]]
-   [uix.core :as uix :refer [$ defui]]
    [cuerdas.core :as str]
-   [goog.math :as gmath]))
+   [goog.math :as gmath]
+   [uix.core :as uix :refer [$ defui]]))
 
 ;; Styles ----------------------------------------------------------------------
 
@@ -80,34 +81,9 @@
 (defui CropCircle [{:keys [direction on-drag-move on-drag-end]}]
   (let [size-offset "calc(var(--offset) * -1)"
         center-offset "calc(50% - var(--offset))"
-        [drag-opts set-drag-opts!] (uix/use-state nil)
-        on-pointer-down (fn [e]
-                          (.preventDefault e)
-                          (set-drag-opts! {:direction direction
-                                           :start-coords {:x (.-clientX e)
-                                                          :y (.-clientY e)}
-                                           :element (.-target e)}))
-        !dragging-opts (uix/use-ref)]
-    (uix/use-effect
-     (fn []
-       (when-let [{:keys [start-coords]} drag-opts]
-         (letfn [(on-pointer-move [e]
-                   (let [delta {:x (- (:x start-coords) (.-clientX e))
-                                :y (- (:y start-coords) (.-clientY e))}
-                         opts (assoc drag-opts :delta delta)]
-                     (on-drag-move opts)
-                     (reset! !dragging-opts opts)))
-                 (unsub []
-                   (.removeEventListener js/window "pointermove" on-pointer-move)
-                   (.removeEventListener js/window "pointerup" unsub)
-                   (when @!dragging-opts
-                     (on-drag-end @!dragging-opts)
-                     (reset! !dragging-opts nil)
-                     (set-drag-opts! nil)))]
-           (.addEventListener js/window "pointermove" on-pointer-move)
-           (.addEventListener js/window "pointerup" unsub {:once true})
-           unsub)))
-     [drag-opts on-drag-move on-drag-end])
+        {:keys [on-pointer-down]} (dnd/use-draggable {:on-drag-move on-drag-move
+                                                      :on-drag-end on-drag-end
+                                                      :meta {:direction direction}})]
     ($ :<>
        ($ :div {:class (cropper-bar-css)
                 :style (case direction
@@ -135,7 +111,7 @@
                                 :width "10px"
                                 :cursor "col-resize"
                                 :z-index 1})
-                :on-pointer-down on-pointer-down #_(get-in bar-dnd [:listeners :onPointerDown])})
+                :on-pointer-down on-pointer-down})
        ($ :div
           {:style (case direction
                     :top    {:top size-offset
@@ -151,7 +127,7 @@
                              :top center-offset
                              :cursor "col-resize"})
            :class (cropper-handle-css direction)
-           :on-pointer-down on-pointer-down #_(get-in circle-dnd [:listeners :onPointerDown])}))))
+           :on-pointer-down on-pointer-down}))))
 
 (defui AlignmentBars [{:keys []}]
   ($ :<>
@@ -306,16 +282,18 @@
                ($ Cropper {:resizer-ref resizer-ref
                            :offset offset
                            :video-dimensions video-dimensions
-                           :on-drag-move (fn [{:keys [direction delta] :as _opts}]
-                                           (let [{:keys [x y]} delta
+                           :on-drag-move (fn [{:keys [meta delta] :as _opts}]
+                                           (let [{:keys [direction]} meta
+                                                 {:keys [x y]} delta
                                                  style (.. @resizer-ref -style)]
                                              (case direction
                                                :top (set! (.. style -top) (px (top-offset (- y))))
                                                :bottom (set! (.. style -bottom) (px (bottom-offset y)))
                                                :left (set! (.. style -left) (px (left-offset (- x))))
                                                :right (set! (.. style -right) (px (right-offset x))))))
-                           :on-drag-end (fn [{:keys [direction delta] :as _opts}]
-                                          (let [{:keys [x y]} delta
+                           :on-drag-end (fn [{:keys [meta delta] :as _opts}]
+                                          (let [{:keys [direction]} meta
+                                                {:keys [x y]} delta
                                                 new-offset (cond-> offset
                                                              (= direction :top) (assoc :top (top-offset (- y)))
                                                              (= direction :bottom) (assoc :bottom (bottom-offset y))
