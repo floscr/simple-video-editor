@@ -38,7 +38,7 @@
    :border "1px solid oklch(100% 0 0)"
    :box-shadow "inset 0 0 0 1px var(--border-color), 0 0 0 999px oklch(0% 0 0 / 0.25)"})
 
-(css cropper-handle-css [k]
+(css cropper-handle-css []
   {:position "absolute"
    :z-index "1"
    :background "oklch(100% 0 0)"
@@ -79,58 +79,58 @@
 (defn px [v]
   (str v "px"))
 
-(defui CropCircle [{:keys [direction on-drag-move on-drag-end]}]
+(defui CropCircle [{:keys [directions on-drag-move on-drag-end]}]
   (let [size-offset "calc(var(--offset) * -1)"
         center-offset "calc(50% - var(--offset))"
         {:keys [on-pointer-down]} (dnd/use-draggable {:on-drag-move on-drag-move
                                                       :on-drag-end on-drag-end
-                                                      :meta {:directions #{direction}}})
+                                                      :meta {:directions #{directions}}})
         on-pointer-down (fn [e]
                           (.stopPropagation e)
                           (on-pointer-down e))]
     ($ :<>
        ($ :div {:class (cropper-bar-css)
-                :style (case direction
-                         :top {:top size-offset
-                               :left 0
-                               :right 0
-                               :height "10px"
-                               :cursor "row-resize"
-                               :z-index 1}
-                         :bottom {:bottom size-offset
+                :style (case directions
+                         #{:top} {:top size-offset
                                   :left 0
                                   :right 0
                                   :height "10px"
                                   :cursor "row-resize"
                                   :z-index 1}
-                         :right {:right size-offset
-                                 :top 0
-                                 :bottom 0
-                                 :width "10px"
-                                 :cursor "col-resize"
-                                 :z-index 1}
-                         :left {:left size-offset
-                                :top 0
-                                :bottom 0
-                                :width "10px"
-                                :cursor "col-resize"
-                                :z-index 1})
+                         #{:bottom} {:bottom size-offset
+                                     :left 0
+                                     :right 0
+                                     :height "10px"
+                                     :cursor "row-resize"
+                                     :z-index 1}
+                         #{:right} {:right size-offset
+                                    :top 0
+                                    :bottom 0
+                                    :width "10px"
+                                    :cursor "col-resize"
+                                    :z-index 1}
+                         #{:left} {:left size-offset
+                                   :top 0
+                                   :bottom 0
+                                   :width "10px"
+                                   :cursor "col-resize"
+                                   :z-index 1})
                 :on-pointer-down on-pointer-down})
        ($ :div
-          {:style (case direction
-                    :top    {:top size-offset
+          {:style (case directions
+                    #{:top} {:top size-offset
                              :left center-offset
                              :cursor "row-resize"}
-                    :bottom {:bottom size-offset
-                             :left center-offset
-                             :cursor "row-resize"}
-                    :right  {:top center-offset
-                             :right size-offset
-                             :cursor "col-resize"}
-                    :left   {:left size-offset
-                             :top center-offset
-                             :cursor "col-resize"})
-           :class (cropper-handle-css direction)
+                    #{:bottom} {:bottom size-offset
+                                :left center-offset
+                                :cursor "row-resize"}
+                    #{:right} {:top center-offset
+                               :right size-offset
+                               :cursor "col-resize"}
+                    #{:left} {:left size-offset
+                              :top center-offset
+                              :cursor "col-resize"})
+           :class (cropper-handle-css)
            :on-pointer-down on-pointer-down}))))
 
 (defui AlignmentBars [{:keys []}]
@@ -179,7 +179,7 @@
                   :on-drag-end on-drag-end}
         (for [direction [:top :right :bottom :left]]
           ($ CropCircle {:key direction
-                         :direction direction
+                         :direction #{direction}
                          :offset offset
                          :on-drag-move on-drag-move
                          :on-drag-end on-drag-end})))))
