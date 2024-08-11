@@ -55,6 +55,7 @@
    "--offset" "calc(var(--size) / 2)"
    "--border-color" "oklch(0% 0 0 / 0.5)"
    :position "absolute"
+   :z-index 1
    :overflow "hidden"
    :inset 0})
 
@@ -83,7 +84,10 @@
         center-offset "calc(50% - var(--offset))"
         {:keys [on-pointer-down]} (dnd/use-draggable {:on-drag-move on-drag-move
                                                       :on-drag-end on-drag-end
-                                                      :meta {:directions #{direction}}})]
+                                                      :meta {:directions #{direction}}})
+        on-pointer-down (fn [e]
+                          (.stopPropagation e)
+                          (on-pointer-down e))]
     ($ :<>
        ($ :div {:class (cropper-bar-css)
                 :style (case direction
@@ -152,21 +156,27 @@
                       :right 0
                       :bottom "33%"}})))
 
-(defui CropRect [{:keys [ref offset children]}]
-  ($ :div {:ref ref
-           :class (cropper-css)
-           :style {:top (px (:top offset))
-                   :bottom (px (:bottom offset))
-                   :right (px (:right offset))
-                   :left (px (:left offset))}}
-     ($ AlignmentBars)
-     children))
+(defui CropRect [{:keys [ref offset children on-drag-move on-drag-end]}]
+  (let [{:keys [on-pointer-down]} (dnd/use-draggable {:on-drag-move on-drag-move
+                                                      :on-drag-end on-drag-end
+                                                      :meta {:directions #{:top :right :bottom :left}}})]
+    ($ :div {:ref ref
+             :class (cropper-css)
+             :style {:top (px (:top offset))
+                     :bottom (px (:bottom offset))
+                     :right (px (:right offset))
+                     :left (px (:left offset))}
+             :on-pointer-down on-pointer-down}
+       ($ AlignmentBars)
+       children)))
 
 (defui Cropper [{:keys [resizer-ref offset video-dimensions on-drag-move on-drag-end]}]
   ($ :div {:class (cropper-wrapper-css)}
      ($ CropRect {:ref resizer-ref
                   :offset offset
-                  :video-dimensions video-dimensions}
+                  :video-dimensions video-dimensions
+                  :on-drag-move on-drag-move
+                  :on-drag-end on-drag-end}
         (for [direction [:top :right :bottom :left]]
           ($ CropCircle {:key direction
                          :direction direction
