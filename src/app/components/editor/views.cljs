@@ -1,7 +1,6 @@
 (ns app.components.editor.views
   (:require
    [app.utils.css.core :refer-macros [css]]
-   [app.bindings.dnd-kit.core :as dnd]
    [uix.core :as uix :refer [$ defui]]
    [cuerdas.core :as str]
    [goog.math :as gmath]))
@@ -78,7 +77,7 @@
 (defn px [v]
   (str v "px"))
 
-(defui CropCircle [{:keys [direction offset on-drag-move on-drag-end]}]
+(defui CropCircle [{:keys [direction on-drag-move on-drag-end]}]
   (let [size-offset "calc(var(--offset) * -1)"
         center-offset "calc(50% - var(--offset))"
         [drag-opts set-drag-opts!] (uix/use-state nil)
@@ -177,7 +176,7 @@
                       :right 0
                       :bottom "33%"}})))
 
-(defui CropRect [{:keys [ref offset children video-dimensions]}]
+(defui CropRect [{:keys [ref offset children]}]
   ($ :div {:ref ref
            :class (cropper-css)
            :style {:top (px (:top offset))
