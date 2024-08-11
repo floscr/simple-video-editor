@@ -16,10 +16,12 @@
     (uix/use-effect
      (fn []
        (when-let [{:keys [start-coords]} drag-opts]
-         (letfn [(on-pointer-move [e]
-                   (let [delta {:x (- (:x start-coords) (.-clientX e))
-                                :y (- (:y start-coords) (.-clientY e))}
-                         opts (assoc drag-opts :delta delta)]
+         (letfn [(on-pointer-move [event]
+                   (let [delta {:x (- (:x start-coords) (.-clientX event))
+                                :y (- (:y start-coords) (.-clientY event))}
+                         opts (assoc drag-opts
+                                     :delta delta
+                                     :event event)]
                      (on-drag-move opts)
                      (reset! !dragging-opts opts)))
                  (unsub []
