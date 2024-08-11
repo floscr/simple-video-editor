@@ -182,7 +182,7 @@
                :bottom "-1px"
                :width (px (* (:element-width video-dimensions) 2))
                :translate "-100%"
-               :background-color "rgba(0, 0, 0, 0.6)"}})
+               :background-color "rgba(0, 0, 0, 0.5)"}})
      ($ :div {:style
               {:position "absolute"
                :right "-1px"
@@ -190,7 +190,7 @@
                :bottom "-1px"
                :width (px (* (:element-width video-dimensions) 2))
                :translate "100%"
-               :background-color "rgba(0, 0, 0, 0.6)"}})
+               :background-color "rgba(0, 0, 0, 0.5)"}})
      ($ :div {:style
               {:position "absolute"
                :left (px (* (- (:element-height video-dimensions)) 2))
@@ -198,7 +198,7 @@
                :height (px (:element-height video-dimensions))
                :top "-1px"
                :translate "0% -100%"
-               :background-color "rgba(0, 0, 0, 0.6)"}})
+               :background-color "rgba(0, 0, 0, 0.5)"}})
      ($ :div {:style
               {:position "absolute"
                :left (px (* (- (:element-height video-dimensions)) 2))
@@ -206,7 +206,7 @@
                :height (px (:element-height video-dimensions))
                :bottom "-1px"
                :translate "0% 100%"
-               :background-color "rgba(0, 0, 0, 0.6)"}})
+               :background-color "rgba(0, 0, 0, 0.5)"}})
      children))
 
 (defui Cropper [{:keys [resizer-ref offset video-dimensions]}]
