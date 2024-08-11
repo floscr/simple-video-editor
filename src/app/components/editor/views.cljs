@@ -84,13 +84,13 @@
         center-offset "calc(50% - var(--offset))"
         {:keys [on-pointer-down]} (dnd/use-draggable {:on-drag-move on-drag-move
                                                       :on-drag-end on-drag-end
-                                                      :meta {:directions #{directions}}})
+                                                      :meta {:directions directions}})
         on-pointer-down (fn [e]
                           (.stopPropagation e)
                           (on-pointer-down e))]
     ($ :<>
        ($ :div {:class (cropper-bar-css)
-                :style (case directions
+                :style (condp = directions
                          #{:top} {:top size-offset
                                   :left 0
                                   :right 0
@@ -114,10 +114,31 @@
                                    :bottom 0
                                    :width "10px"
                                    :cursor "col-resize"
-                                   :z-index 1})
+                                   :z-index 1}
+                         nil)
                 :on-pointer-down on-pointer-down})
        ($ :div
           {:style (case directions
+                    #{:top :left} {:top 0
+                                   :left 0
+                                   :translate "-50% -50%"
+                                   :scale "0.7"
+                                   :cursor "nwse-resize"}
+                    #{:top :right} {:top 0
+                                    :right 0
+                                    :translate "50% -50%"
+                                    :scale "0.7"
+                                    :cursor "nesw-resize"}
+                    #{:bottom :left} {:bottom 0
+                                      :left 0
+                                      :translate "-50% 50%"
+                                      :scale "0.7"
+                                      :cursor "nesw-resize"}
+                    #{:bottom :right} {:bottom 0
+                                       :right 0
+                                       :translate "50% 50%"
+                                       :scale "0.7"
+                                       :cursor "nwse-resize"}
                     #{:top} {:top size-offset
                              :left center-offset
                              :cursor "row-resize"}
@@ -129,7 +150,8 @@
                                :cursor "col-resize"}
                     #{:left} {:left size-offset
                               :top center-offset
-                              :cursor "col-resize"})
+                              :cursor "col-resize"}
+                    nil)
            :class (cropper-handle-css)
            :on-pointer-down on-pointer-down}))))
 
@@ -171,15 +193,20 @@
        children)))
 
 (defui Cropper [{:keys [resizer-ref offset video-dimensions on-drag-move on-drag-end]}]
+
   ($ :div {:class (cropper-wrapper-css)}
      ($ CropRect {:ref resizer-ref
                   :offset offset
                   :video-dimensions video-dimensions
                   :on-drag-move on-drag-move
                   :on-drag-end on-drag-end}
-        (for [direction [:top :right :bottom :left]]
+        (for [direction [#{:top} #{:right} #{:bottom} #{:left}
+                         #{:top :left}
+                         #{:top :right}
+                         #{:bottom :left}
+                         #{:bottom :right}]]
           ($ CropCircle {:key direction
-                         :direction #{direction}
+                         :directions direction
                          :offset offset
                          :on-drag-move on-drag-move
                          :on-drag-end on-drag-end})))))
