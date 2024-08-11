@@ -317,13 +317,12 @@
                   {:class [(video-css)]
                    :ref video-ref
                    :src video-url}))
-            ($ Timeline
-               {:video-ref video-ref}
-               (let [command (ffmpeg-command {:offset offset
-                                              :file-name file-name
-                                              :video-dimensions video-dimensions})]
-                 ($ :input {:class (ffmpeg-command-css)
-                            :read-only true
-                            #_#_:style {:width (str (count command) "ch")}
-                            :value command
-                            :on-click #(.select (.-target %))}))))))))
+            ($ Timeline {:video-ref video-ref})
+            (let [command (ffmpeg-command {:offset offset
+                                           :file-name file-name
+                                           :video-dimensions video-dimensions})]
+              ($ :input {:class (ffmpeg-command-css)
+                         :read-only true
+                         #_#_:style {:width (str (count command) "ch")}
+                         :value command
+                         :on-click #(.select (.-target %))})))))))
