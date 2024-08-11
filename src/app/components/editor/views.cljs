@@ -250,6 +250,21 @@
                         :left 0
                         :right 0}
         [offset set-offset!] (uix/use-state default-offset)
+        max-height (:element-height video-dimensions)
+        max-width (:element-width video-dimensions)
+        padding 10
+        top-offset (fn [y]
+                     (-> (+ y (:top offset))
+                         (gmath/clamp 0 (- max-height (:bottom offset) padding))))
+        bottom-offset (fn [y]
+                        (-> (+ y (:bottom offset))
+                            (gmath/clamp 0 (- max-height (:top offset) padding))))
+        right-offset (fn [x]
+                       (-> (+ x (:right offset))
+                           (gmath/clamp 0 (- max-width (:left offset) padding))))
+        left-offset (fn [x]
+                      (-> (+ x (:left offset))
+                          (gmath/clamp 0 (- max-width (:right offset) padding))))
         [video-url set-video-url!] (uix/use-state nil)
         load-video! (uix/use-callback
                      (fn [url]
@@ -295,22 +310,7 @@
                            :video-dimensions video-dimensions
                            :on-drag-move (fn [{:keys [direction delta] :as _opts}]
                                            (let [{:keys [x y]} delta
-                                                 style (.. @resizer-ref -style)
-                                                 max-height (:element-height video-dimensions)
-                                                 max-width (:element-width video-dimensions)
-                                                 padding 10
-                                                 top-offset (fn [y]
-                                                              (-> (+ y (:top offset))
-                                                                  (gmath/clamp 0 (- max-height (:bottom offset) padding))))
-                                                 bottom-offset (fn [y]
-                                                                 (-> (+ y (:bottom offset))
-                                                                     (gmath/clamp 0 (- max-height (:top offset) padding))))
-                                                 right-offset (fn [x]
-                                                                (-> (+ x (:right offset))
-                                                                    (gmath/clamp 0 (- max-width (:left offset) padding))))
-                                                 left-offset (fn [x]
-                                                               (-> (+ x (:left offset))
-                                                                   (gmath/clamp 0 (- max-width (:right offset) padding))))]
+                                                 style (.. @resizer-ref -style)]
                                              (case direction
                                                :top (set! (.. style -top) (px (top-offset (- y))))
                                                :bottom (set! (.. style -bottom) (px (bottom-offset y)))
@@ -318,21 +318,6 @@
                                                :right (set! (.. style -right) (px (right-offset x))))))
                            :on-drag-end (fn [{:keys [direction delta] :as _opts}]
                                           (let [{:keys [x y]} delta
-                                                max-height (:element-height video-dimensions)
-                                                max-width (:element-width video-dimensions)
-                                                padding 10
-                                                top-offset (fn [y]
-                                                             (-> (+ y (:top offset))
-                                                                 (gmath/clamp 0 (- max-height (:bottom offset) padding))))
-                                                bottom-offset (fn [y]
-                                                                (-> (+ y (:bottom offset))
-                                                                    (gmath/clamp 0 (- max-height (:top offset) padding))))
-                                                right-offset (fn [x]
-                                                               (-> (+ x (:right offset))
-                                                                   (gmath/clamp 0 (- max-width (:left offset) padding))))
-                                                left-offset (fn [x]
-                                                              (-> (+ x (:left offset))
-                                                                  (gmath/clamp 0 (- max-width (:right offset) padding))))
                                                 new-offset (cond-> offset
                                                              (= direction :top) (assoc :top (top-offset (- y)))
                                                              (= direction :bottom) (assoc :bottom (bottom-offset y))
