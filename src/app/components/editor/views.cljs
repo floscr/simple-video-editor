@@ -96,7 +96,23 @@
         circle-dnd (dnd/use-draggable direction)
         {:keys [isDragging] :as dnd-opts} bar-dnd
         size-offset "calc(var(--offset) * -1)"
-        center-offset "calc(50% - var(--offset))"]
+        center-offset "calc(50% - var(--offset))"
+        [drag-el set-drag-el!] (uix/use-state nil)
+        on-pointer-down (fn [e]
+                          (.preventDefault e)
+                          (set-drag-el! (.-target e)))]
+    (uix/use-effect
+     (fn []
+       (when drag-el
+         (let [on-pointer-move js/console.log]
+           (letfn [(unsub []
+                     (.removeEventListener js/window "pointermove" on-pointer-move)
+                     (.removeEventListener js/window "pointerup" unsub)
+                     (set-drag-el! nil))]
+             (.addEventListener js/window "pointermove" js/console.log)
+             (.addEventListener js/window "pointerup" unsub {:once true})
+             unsub))))
+     [drag-el])
     ($ :<>
        ($ :div {:ref (:setNodeRef bar-dnd)
                 :class (cropper-bar-css)
@@ -125,7 +141,7 @@
                                 :width "10px"
                                 :cursor "col-resize"
                                 :z-index 1})
-                :on-pointer-down (get-in bar-dnd [:listeners :onPointerDown])})
+                :on-pointer-down on-pointer-down #_(get-in bar-dnd [:listeners :onPointerDown])})
        ($ :div
           {:ref (:setNodeRef circle-dnd)
            :style (case direction
@@ -142,7 +158,7 @@
                              :top center-offset
                              :cursor "col-resize"})
            :class (cropper-handle-css direction)
-           :on-pointer-down (get-in circle-dnd [:listeners :onPointerDown])}))))
+           :on-pointer-down on-pointer-down #_(get-in circle-dnd [:listeners :onPointerDown])}))))
 
 (defui AlignmentBars [{:keys []}]
   ($ :<>
