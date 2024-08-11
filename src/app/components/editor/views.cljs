@@ -83,7 +83,7 @@
         center-offset "calc(50% - var(--offset))"
         {:keys [on-pointer-down]} (dnd/use-draggable {:on-drag-move on-drag-move
                                                       :on-drag-end on-drag-end
-                                                      :meta {:direction direction}})]
+                                                      :meta {:directions #{direction}}})]
     ($ :<>
        ($ :div {:class (cropper-bar-css)
                 :style (case direction
@@ -283,22 +283,25 @@
                            :offset offset
                            :video-dimensions video-dimensions
                            :on-drag-move (fn [{:keys [meta delta] :as _opts}]
-                                           (let [{:keys [direction]} meta
+                                           (let [{:keys [directions]} meta
                                                  {:keys [x y]} delta
                                                  style (.. @resizer-ref -style)]
-                                             (case direction
-                                               :top (set! (.. style -top) (px (top-offset (- y))))
-                                               :bottom (set! (.. style -bottom) (px (bottom-offset y)))
-                                               :left (set! (.. style -left) (px (left-offset (- x))))
-                                               :right (set! (.. style -right) (px (right-offset x))))))
+                                             (when (:top directions)
+                                               (set! (.. style -top) (px (top-offset (- y)))))
+                                             (when (:bottom directions)
+                                               (set! (.. style -bottom) (px (bottom-offset y))))
+                                             (when (:left directions)
+                                               (set! (.. style -left) (px (left-offset (- x)))))
+                                             (when (:right directions)
+                                               (set! (.. style -right) (px (right-offset x))))))
                            :on-drag-end (fn [{:keys [meta delta] :as _opts}]
-                                          (let [{:keys [direction]} meta
+                                          (let [{:keys [directions]} meta
                                                 {:keys [x y]} delta
                                                 new-offset (cond-> offset
-                                                             (= direction :top) (assoc :top (top-offset (- y)))
-                                                             (= direction :bottom) (assoc :bottom (bottom-offset y))
-                                                             (= direction :left) (assoc :left (left-offset (- x)))
-                                                             (= direction :right) (assoc :right (right-offset x)))]
+                                                             (:top directions) (assoc :top (top-offset (- y)))
+                                                             (:bottom directions) (assoc :bottom (bottom-offset y))
+                                                             (:left directions) (assoc :left (left-offset (- x)))
+                                                             (:right directions) (assoc :right (right-offset x)))]
                                             (set-offset! new-offset)))})
                ($ :video
                   {:class [(video-css)]
