@@ -235,7 +235,6 @@
     ($ :div
        ($ :button
           {:on-click (fn []
-                       (js/console.log "playing?" playing?)
                        (if (.-paused @video-ref)
                          (.play @video-ref)
                          (.pause @video-ref)))}
