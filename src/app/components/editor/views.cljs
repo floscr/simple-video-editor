@@ -249,8 +249,9 @@
          (.addEventListener @video-ref "pause" set-pause!)
          (.addEventListener @video-ref "playing" set-playing?!)
          (fn []
-           (.removeEventListener @video-ref "pause" set-pause!)
-           (.removeEventListener @video-ref "playing" set-playing?!))))
+           (when @video-ref
+             (.removeEventListener @video-ref "pause" set-pause!)
+             (.removeEventListener @video-ref "playing" set-playing?!)))))
      [video-ref])
     ($ :div
        ($ :button
