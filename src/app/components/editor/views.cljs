@@ -36,7 +36,7 @@
    :position "absolute"
    :inset 0
    :border "1px solid oklch(100% 0 0)"
-   :box-shadow "inset 0 0 0 1px var(--border-color)"})
+   :box-shadow "inset 0 0 0 1px var(--border-color), 0 0 0 999px oklch(0% 0 0 / 0.25)"})
 
 (css cropper-handle-css [k]
   {:position "absolute"
@@ -185,38 +185,6 @@
                    :right (px (:right offset))
                    :left (px (:left offset))}}
      ($ AlignmentBars)
-     ($ :div {:style
-              {:position "absolute"
-               :left "-1px"
-               :top "-1px"
-               :bottom "-1px"
-               :width (px (* (:element-width video-dimensions) 2))
-               :translate "-100%"
-               :background-color "rgba(0, 0, 0, 0.5)"}})
-     ($ :div {:style
-              {:position "absolute"
-               :right "-1px"
-               :top "-1px"
-               :bottom "-1px"
-               :width (px (* (:element-width video-dimensions) 2))
-               :translate "100%"
-               :background-color "rgba(0, 0, 0, 0.5)"}})
-     ($ :div {:style
-              {:position "absolute"
-               :left (px (* (- (:element-height video-dimensions)) 2))
-               :right (px (* (- (:element-height video-dimensions)) 2))
-               :height (px (:element-height video-dimensions))
-               :top "-1px"
-               :translate "0% -100%"
-               :background-color "rgba(0, 0, 0, 0.5)"}})
-     ($ :div {:style
-              {:position "absolute"
-               :left (px (* (- (:element-height video-dimensions)) 2))
-               :right (px (* (- (:element-height video-dimensions)) 2))
-               :height (px (:element-height video-dimensions))
-               :bottom "-1px"
-               :translate "0% 100%"
-               :background-color "rgba(0, 0, 0, 0.5)"}})
      children))
 
 (defui Cropper [{:keys [resizer-ref offset video-dimensions on-drag-move on-drag-end]}]
