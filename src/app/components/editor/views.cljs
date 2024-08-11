@@ -100,18 +100,23 @@
         [drag-el set-drag-el!] (uix/use-state nil)
         on-pointer-down (fn [e]
                           (.preventDefault e)
-                          (set-drag-el! (.-target e)))]
+                          (set-drag-el! {:start-coords {:x (.-clientX e)
+                                                        :y (.-clientY e)}
+                                         :element (.-target e)}))]
     (uix/use-effect
      (fn []
-       (when drag-el
-         (let [on-pointer-move js/console.log]
-           (letfn [(unsub []
-                     (.removeEventListener js/window "pointermove" on-pointer-move)
-                     (.removeEventListener js/window "pointerup" unsub)
-                     (set-drag-el! nil))]
-             (.addEventListener js/window "pointermove" js/console.log)
-             (.addEventListener js/window "pointerup" unsub {:once true})
-             unsub))))
+       (when-let [{:keys [element start-coords]} drag-el]
+         (letfn [(on-pointer-move [e]
+                   (let [diff {:x (- (:x start-coords) (.-clientX e))
+                               :y (- (:y start-coords) (.-clientY e))}]
+                     (js/console.log "diff" diff)))
+                 (unsub []
+                   (.removeEventListener js/window "pointermove" on-pointer-move)
+                   (.removeEventListener js/window "pointerup" unsub)
+                   (set-drag-el! nil))]
+           (.addEventListener js/window "pointermove" on-pointer-move)
+           (.addEventListener js/window "pointerup" unsub {:once true})
+           unsub)))
      [drag-el])
     ($ :<>
        ($ :div {:ref (:setNodeRef bar-dnd)
