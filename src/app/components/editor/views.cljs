@@ -289,7 +289,7 @@
                                            :height (.-videoHeight @video-ref)
                                            :element-width (.-clientWidth @video-ref)
                                            :element-height (.-clientHeight @video-ref)}))]
-           (.addEventListener @video-ref "loadedmetadata" f)
+           (.addEventListener @video-ref "loadedmetadata" f {:once true})
            #(when @video-ref (.removeEventListener @video-ref "loadedmetadata" f)))))
      [video-url example-video-url])
     ($ dnd/context
