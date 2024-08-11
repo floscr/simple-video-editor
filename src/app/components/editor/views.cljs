@@ -78,49 +78,39 @@
 (defn px [v]
   (str v "px"))
 
-(defn translate-3D [axis]
-  (str "translate3D(" (str/join "," axis) ")"))
-
-(defn translate-x [dnd-opts pred]
-  (let [value (get-in dnd-opts [:transform :x])]
-    (when (pred value)
-      (translate-3D [(str value "px") 0 0]))))
-
-(defn translate-y [dnd-opts pred]
-  (let [value (get-in dnd-opts [:transform :y])]
-    (when (pred value)
-      (translate-3D [0 (str value "px") 0]))))
-
-(defui CropCircle [{:keys [direction offset]}]
-  (let [bar-dnd (dnd/use-draggable direction)
-        circle-dnd (dnd/use-draggable direction)
-        {:keys [isDragging] :as dnd-opts} bar-dnd
-        size-offset "calc(var(--offset) * -1)"
+(defui CropCircle [{:keys [direction offset on-drag-move on-drag-end]}]
+  (let [size-offset "calc(var(--offset) * -1)"
         center-offset "calc(50% - var(--offset))"
-        [drag-el set-drag-el!] (uix/use-state nil)
+        [drag-opts set-drag-opts!] (uix/use-state nil)
         on-pointer-down (fn [e]
                           (.preventDefault e)
-                          (set-drag-el! {:start-coords {:x (.-clientX e)
-                                                        :y (.-clientY e)}
-                                         :element (.-target e)}))]
+                          (set-drag-opts! {:direction direction
+                                           :start-coords {:x (.-clientX e)
+                                                          :y (.-clientY e)}
+                                           :element (.-target e)}))
+        !dragging-opts (uix/use-ref)]
     (uix/use-effect
      (fn []
-       (when-let [{:keys [element start-coords]} drag-el]
+       (when-let [{:keys [start-coords]} drag-opts]
          (letfn [(on-pointer-move [e]
-                   (let [diff {:x (- (:x start-coords) (.-clientX e))
-                               :y (- (:y start-coords) (.-clientY e))}]
-                     (js/console.log "diff" diff)))
+                   (let [delta {:x (- (:x start-coords) (.-clientX e))
+                                :y (- (:y start-coords) (.-clientY e))}
+                         opts (assoc drag-opts :delta delta)]
+                     (on-drag-move opts)
+                     (reset! !dragging-opts opts)))
                  (unsub []
                    (.removeEventListener js/window "pointermove" on-pointer-move)
                    (.removeEventListener js/window "pointerup" unsub)
-                   (set-drag-el! nil))]
+                   (when @!dragging-opts
+                     (on-drag-end @!dragging-opts)
+                     (reset! !dragging-opts nil)
+                     (set-drag-opts! nil)))]
            (.addEventListener js/window "pointermove" on-pointer-move)
            (.addEventListener js/window "pointerup" unsub {:once true})
            unsub)))
-     [drag-el])
+     [drag-opts on-drag-move on-drag-end])
     ($ :<>
-       ($ :div {:ref (:setNodeRef bar-dnd)
-                :class (cropper-bar-css)
+       ($ :div {:class (cropper-bar-css)
                 :style (case direction
                          :top {:top size-offset
                                :left 0
@@ -148,8 +138,7 @@
                                 :z-index 1})
                 :on-pointer-down on-pointer-down #_(get-in bar-dnd [:listeners :onPointerDown])})
        ($ :div
-          {:ref (:setNodeRef circle-dnd)
-           :style (case direction
+          {:style (case direction
                     :top    {:top size-offset
                              :left center-offset
                              :cursor "row-resize"}
@@ -230,7 +219,7 @@
                :background-color "rgba(0, 0, 0, 0.5)"}})
      children))
 
-(defui Cropper [{:keys [resizer-ref offset video-dimensions]}]
+(defui Cropper [{:keys [resizer-ref offset video-dimensions on-drag-move on-drag-end]}]
   ($ :div {:class (cropper-wrapper-css)}
      ($ CropRect {:ref resizer-ref
                   :offset offset
@@ -238,7 +227,9 @@
         (for [direction [:top :right :bottom :left]]
           ($ CropCircle {:key direction
                          :direction direction
-                         :offset offset})))))
+                         :offset offset
+                         :on-drag-move on-drag-move
+                         :on-drag-end on-drag-end})))))
 
 (defn ffmpeg-command [{:keys [offset file-name video-dimensions]}]
   (let [{:keys [element-width width element-height height]} video-dimensions
@@ -313,77 +304,80 @@
            (.addEventListener @video-ref "loadedmetadata" f {:once true})
            #(when @video-ref (.removeEventListener @video-ref "loadedmetadata" f)))))
      [video-url example-video-url])
-    ($ dnd/context
-       (let [max-height (:element-height video-dimensions)
-             max-width (:element-width video-dimensions)
-             padding 10
-             top-offset (uix/use-callback
-                         (fn [y]
-                           (-> (+ y (:top offset))
-                               (gmath/clamp 0 (+ max-height (:bottom offset) (- padding)))))
-                         [offset max-height padding])
-             bottom-offset (uix/use-callback
-                            (fn [y]
-                              (-> (- (+ y (:bottom offset)))
-                                  (gmath/clamp 0 (- max-height (:top offset) padding))))
-                            [offset max-height padding])
-             right-offset (uix/use-callback
-                           (fn [x]
-                             (-> (- (+ x (:right offset)))
-                                 (gmath/clamp 0 (- max-width (:left offset) padding))))
-                           [offset max-width padding])
-             left-offset (uix/use-callback
-                          (fn [x]
-                            (-> (+ x (:left offset))
-                                (gmath/clamp 0 (+ max-width (:right offset) (- padding)))))
-                          [offset max-width padding])]
-         {:on-drag-end (fn [opts]
-                         (let [id (.. opts -active -id)
-                               y (.. opts -delta -y)
-                               x (.. opts -delta -x)]
-                           (cond-> offset
-                             (= id :top) (assoc :top (top-offset y))
-                             (= id :bottom) (assoc :bottom (bottom-offset y))
-                             (= id :left) (assoc :left (left-offset x))
-                             (= id :right) (assoc :right (right-offset x))
-                             :always set-offset!)))
-          :on-drag-move (fn [opts]
-                          (let [id (.. opts -active -id)
-                                y (.. opts -delta -y)
-                                x (.. opts -delta -x)
-                                style (.. @resizer-ref -style)]
-                            (case id
-                              :top (set! (.. style -top) (px (top-offset y)))
-                              :bottom (set! (.. style -bottom) (px (bottom-offset y)))
-                              :left (set! (.. style -left) (px (left-offset x)))
-                              :right (set! (.. style -right) (px (right-offset x))))))})
-       ($ :div {:class (wrapper-css)}
-          ($ :button
-             {:on-pointer-down #(load-video! example-video-url)}
-             "Load example")
-          ($ :button
-             {:on-pointer-down #(set-offset! default-offset)}
-             "Reset")
-          ($ :input
-             {:type "file"
-              :accept "video/*"
-              :on-change (fn [e]
-                           (let [file (-> e .-target .-files (aget 0))
-                                 url (js/URL.createObjectURL file)]
-                             (set-file-name! (.-name file))
-                             (load-video! url)))})
-          (when video-url
-            ($ :<>
-               ($ :div {:class (video-wrapper-css)}
-                  ($ Cropper {:resizer-ref resizer-ref
-                              :offset offset
-                              :video-dimensions video-dimensions})
-                  ($ :video
-                     {:class [(video-css)]
-                      :ref video-ref
-                      :src video-url}))
-               ($ Timeline
-                     {:video-ref video-ref})
+    ($ :div {:class (wrapper-css)}
+       ($ :button
+          {:on-pointer-down #(load-video! example-video-url)}
+          "Load example")
+       ($ :button
+          {:on-pointer-down #(set-offset! default-offset)}
+          "Reset")
+       ($ :input
+          {:type "file"
+           :accept "video/*"
+           :on-change (fn [e]
+                        (let [file (-> e .-target .-files (aget 0))
+                              url (js/URL.createObjectURL file)]
+                          (set-file-name! (.-name file))
+                          (load-video! url)))})
+       (when video-url
+         ($ :<>
+            ($ :div {:class (video-wrapper-css)}
+               ($ Cropper {:resizer-ref resizer-ref
+                           :offset offset
+                           :video-dimensions video-dimensions
+                           :on-drag-move (fn [{:keys [direction delta] :as opts}]
+                                           (let [{:keys [x y]} delta
+                                                 style (.. @resizer-ref -style)
+                                                 max-height (:element-height video-dimensions)
+                                                 max-width (:element-width video-dimensions)
+                                                 padding 10
+                                                 top-offset (fn [y]
+                                                              (-> (+ y (:top offset))
+                                                                  (gmath/clamp 0 (+ max-height (:bottom offset) (- padding)))))
+                                                 bottom-offset (fn [y]
+                                                                 (-> (+ y (:bottom offset))
+                                                                     (gmath/clamp 0 (- max-height (:top offset) padding))))
+                                                 right-offset (fn [x]
+                                                                (-> (+ x (:right offset))
+                                                                    (gmath/clamp 0 (- max-width (:left offset) padding))))
+                                                 left-offset (fn [x]
+                                                               (-> (+ x (:left offset))
+                                                                   (gmath/clamp 0 (+ max-width (:right offset) (- padding)))))]
+                                             (case direction
+                                               :top (set! (.. style -top) (px (top-offset (- y))))
+                                               :bottom (set! (.. style -bottom) (px (bottom-offset y)))
+                                               :left (set! (.. style -left) (px (left-offset (- x))))
+                                               :right (set! (.. style -right) (px (right-offset x))))))
+                           :on-drag-end (fn [{:keys [direction delta] :as opts}]
+                                          (let [{:keys [x y]} delta
+                                                max-height (:element-height video-dimensions)
+                                                max-width (:element-width video-dimensions)
+                                                padding 10
+                                                top-offset (fn [y]
+                                                             (-> (+ y (:top offset))
+                                                                 (gmath/clamp 0 (+ max-height (:bottom offset) (- padding)))))
+                                                bottom-offset (fn [y]
+                                                                (-> (+ y (:bottom offset))
+                                                                    (gmath/clamp 0 (- max-height (:top offset) padding))))
+                                                right-offset (fn [x]
+                                                               (-> (+ x (:right offset))
+                                                                   (gmath/clamp 0 (- max-width (:left offset) padding))))
+                                                left-offset (fn [x]
+                                                              (-> (+ x (:left offset))
+                                                                  (gmath/clamp 0 (+ max-width (:right offset) (- padding)))))
+                                                new-offset (cond-> offset
+                                                             (= direction :top) (assoc :top (top-offset (- y)))
+                                                             (= direction :bottom) (assoc :bottom (bottom-offset y))
+                                                             (= direction :left) (assoc :left (left-offset (- x)))
+                                                             (= direction :right) (assoc :right (right-offset x)))]
+                                            (js/console.log "new-offset" new-offset)
+                                            (set-offset! new-offset)))})
+               ($ :video
+                  {:class [(video-css)]
+                   :ref video-ref
+                   :src video-url}))
+            ($ Timeline
+               {:video-ref video-ref}
                (let [command (ffmpeg-command {:offset offset
                                               :file-name file-name
                                               :video-dimensions video-dimensions})]
